@@ -65,8 +65,23 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     return;
   }
 
-  // Fetch headshot
-  const { url: headshotUrl, expiresAt: headshotExpiresAt } = await fetchRobloxHeadshot(roverData.robloxId);
+  // Get optional custom headshot URL
+  let customHeadshotUrl: string | null = null;
+  try {
+    customHeadshotUrl = interaction.fields.getTextInputValue(ModalInputCustomId.CUSTOM_HEADSHOT_URL)?.trim() || null;
+  } catch {
+    // Field might not exist if modal was opened before bot update
+    customHeadshotUrl = null;
+  }
+
+  // Fetch Roblox headshot (used as fallback if no custom URL)
+  const { url: robloxHeadshotUrl, expiresAt: robloxHeadshotExpiresAt } = await fetchRobloxHeadshot(roverData.robloxId);
+
+  // Determine which headshot to use
+  const finalHeadshotUrl = customHeadshotUrl || robloxHeadshotUrl;
+  const finalExpiresAt = customHeadshotUrl
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Custom URLs: refresh in 30 days
+    : robloxHeadshotExpiresAt;
 
   // Create the player profile
   const player = await Player.create({
@@ -74,8 +89,9 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     discordId: interaction.user.id,
     robloxId: roverData.robloxId,
     robloxUsername: roverData.robloxUsername,
-    robloxHeadshotUrl: headshotUrl,
-    robloxHeadshotExpiresAt: headshotExpiresAt,
+    robloxHeadshotUrl: finalHeadshotUrl,
+    robloxHeadshotExpiresAt: finalExpiresAt,
+    customHeadshotUrl,
     rank: null,
     stage: 'Stage 0',
     region: regionInput as Region,
@@ -100,10 +116,10 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     `Ask a staff member to assign you a rank using \`/setrank\` to start challenging.`,
   );
 
-  if (headshotUrl) {
-    embed.setThumbnail(headshotUrl);
+  if (finalHeadshotUrl) {
+    embed.setThumbnail(finalHeadshotUrl);
   }
 
   await interaction.editReply({ embeds: [embed] });
-  logger.info(`Profile created for ${interaction.user.id} — Roblox: ${roverData.robloxUsername}`);
+  logger.info(`Profile created for ${interaction.user.id} — Roblox: ${roverData.robloxUsername}, custom avatar: ${!!customHeadshotUrl}`);
 }

@@ -75,4 +75,5 @@ export const ModalInputCustomId = {
   ROBLOX_USERNAME: 'input_roblox_username',
   REGION: 'input_region',
   OPPONENT_USERNAME: 'input_opponent_username',
+  CUSTOM_HEADSHOT_URL: 'input_custom_headshot_url',
 } as const;

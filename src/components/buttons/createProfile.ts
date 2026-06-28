@@ -10,7 +10,7 @@ export async function handleCreateProfileButton(interaction: ButtonInteraction):
   const robloxUsernameInput = new TextInputBuilder()
     .setCustomId(ModalInputCustomId.ROBLOX_USERNAME)
     .setLabel('Roblox Username')
-    .setPlaceholder('Enter your Roblox username')
+    .setPlaceholder('Enter your verified Roblox username')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
@@ -22,10 +22,18 @@ export async function handleCreateProfileButton(interaction: ButtonInteraction):
     .setRequired(true)
     .setMaxLength(2);
 
+  const headshotInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.CUSTOM_HEADSHOT_URL)
+    .setLabel('Profile Picture URL (optional)')
+    .setPlaceholder('Paste a direct image URL — leave empty for Roblox avatar')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false);
+
   const row1 = new ActionRowBuilder<TextInputBuilder>().addComponents(robloxUsernameInput);
   const row2 = new ActionRowBuilder<TextInputBuilder>().addComponents(regionInput);
+  const row3 = new ActionRowBuilder<TextInputBuilder>().addComponents(headshotInput);
 
-  modal.addComponents(row1, row2);
+  modal.addComponents(row1, row2, row3);
 
   await interaction.showModal(modal);
 }

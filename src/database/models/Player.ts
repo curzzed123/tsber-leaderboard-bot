@@ -19,6 +19,7 @@ export interface IPlayer extends Document {
   robloxUsername: string;
   robloxHeadshotUrl: string;
   robloxHeadshotExpiresAt: Date;
+  customHeadshotUrl: string | null; // User-uploaded profile picture
   rank: number | null;
   stage: string;
   region: (typeof Region)[keyof typeof Region];
@@ -60,6 +61,7 @@ const playerSchema = new Schema<IPlayer>(
     robloxUsername: { type: String, required: true },
     robloxHeadshotUrl: { type: String, default: '' },
     robloxHeadshotExpiresAt: { type: Date, default: () => new Date() },
+    customHeadshotUrl: { type: String, default: null },
     rank: { type: Number, default: null },
     stage: { type: String, default: 'Stage 0' },
     region: {
@@ -86,7 +88,7 @@ const playerSchema = new Schema<IPlayer>(
 
 // Compound unique index: one player per guild per Discord user
 playerSchema.index({ guildId: 1, discordId: 1 }, { unique: true });
-// Index for rank-based queries (leaderboard sorting, range checks)
+// Index for: rank-based queries (leaderboard sorting, range checks)
 playerSchema.index({ guildId: 1, rank: 1 });
 
 export const Player = model<IPlayer>('Player', playerSchema);
