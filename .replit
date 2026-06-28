@@ -1,0 +1,17 @@
+run = "npm run dev"
+
+entrypoint = "src/index.ts"
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "npm start"]
+
+[env]
+PORT = "3000"
+
+[[ports]]
+localPort = 3000
+exposedPort = 80
