@@ -6,100 +6,77 @@ import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import {
   getStatusText,
-  buildProgressBar,
-  getFormRatio,
+  buildGradientBar,
   robloxProfileLink,
 } from '../utils/formatting.js';
 import { fetchRobloxHeadshot, isHeadshotExpired } from './rover.js';
-import type { IPlayer } from '../database/models/Player.js';
 
 let editTimer: NodeJS.Timeout | null = null;
 const pendingGuilds = new Set<string>();
 
 /**
- * Build a single player's card-like entry with progress bar + Roblox link.
+ * Build a single player's card matching the TSBER leaderboard style.
  *
- * ┌──────────────────────────────────────┐
- * │ 🥇 #1  Username              ⚔️     │
- * │ ═══════════════════════════════════  │
- * │ ▰▰▰▰▰▰▰▱▱▱  70% form    5W / 2L     │
- * │ 🌍 EU  •  Status: Challengeable      │
- * └──────────────────────────────────────┘
+ * #1 RobloxUsername
+ * ID: 509
+ * <@discord_id>
+ * << | .username. | >>
+ * Region: EU
+ * Stage: Ranked
+ * Status: Challengeable
+ * wins: 5 losses: 2
+ * ████████▓▓▓▒▒▒░░░
  */
 function playerSlot(player: any): string {
   const rank = player.rank ?? 0;
   const statusText = getStatusText(player.status as PlayerStatus);
-  const statusEmoji = getStatusEmojiForSlot(player.status as PlayerStatus);
   const region = player.region ?? '-';
-  const record = `${player.wins}W / ${player.losses}L`;
-  const streak = getStreakText(player.streak);
-
-  // Progress bar based on form (win rate + streak bonus)
-  const formRatio = getFormRatio(player.wins, player.losses, player.streak);
-  const bar = buildProgressBar(formRatio, 10);
-  const formPct = Math.round(formRatio * 100);
+  const stage = player.stage || '-';
+  const mention = `<@${player.discordId}>`;
+  const nameLink = robloxProfileLink(player.robloxUsername, player.robloxId);
 
   // Medal for top 3
   let medal = '';
-  if (rank === 1) medal = '🥇';
-  else if (rank === 2) medal = '🥈';
-  else if (rank === 3) medal = '🥉';
+  if (rank === 1) medal = '🥇 ';
+  else if (rank === 2) medal = '🥈 ';
+  else if (rank === 3) medal = '🥉 ';
 
-  // Roblox username as clickable hyperlink
-  const nameLink = robloxProfileLink(player.robloxUsername, player.robloxId);
-
-  // Build the card
   return (
-    `${medal} **#${rank}**  ${nameLink}  ${statusEmoji}\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `${bar}  \`${formPct}%\`  •  ${record}  •  ${streak}\n` +
-    `🌍 ${region}  •  Status: **${statusText}**`
+    `${medal}**#${rank}** ${nameLink}\n` +
+    `ID: ${player.robloxId}\n` +
+    `${mention}\n` +
+    `<< | .${player.robloxUsername}. | >>\n` +
+    `Region: ${region}\n` +
+    `Stage: **${stage}**\n` +
+    `Status: ${statusText}\n` +
+    `wins: ${player.wins} losses: ${player.losses}\n` +
+    buildGradientBar()
   );
 }
 
 /**
  * Build a vacant slot for empty ranks.
+ * Same structure but empty.
  */
 function vacantSlot(rank: number): string {
   return (
-    `**#${rank}**  Vacant\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `▱▱▱▱▱▱▱▱▱▱  \`0%\`  •  0W / 0L  •  —\n` +
-    `🌍 —  •  Status: **Empty**`
+    `**#${rank}** Vacant\n` +
+    `ID: —\n` +
+    `*No player registered*\n` +
+    `<< | .vacant. | >>\n` +
+    `Region: —\n` +
+    `Stage: —\n` +
+    `Status: Empty\n` +
+    `wins: 0 losses: 0\n` +
+    buildGradientBar()
   );
 }
 
 /**
- * Get status emoji for leaderboard display.
- */
-function getStatusEmojiForSlot(status: PlayerStatus): string {
-  switch (status) {
-    case PlayerStatus.CHALLENGING:
-      return '⚔️';
-    case PlayerStatus.CHALLENGED:
-      return '🎯';
-    case PlayerStatus.IMMUNE:
-      return '🛡️';
-    case PlayerStatus.COOLDOWN:
-      return '⏳';
-    default:
-      return '✅';
-  }
-}
-
-/**
- * Get streak as short text.
- */
-function getStreakText(streak: number): string {
-  if (streak > 0) return `🔥${streak}`;
-  if (streak < 0) return `💀${Math.abs(streak)}`;
-  return '—';
-}
-
-/**
  * Build a leaderboard embed for a specific rank range.
- * Each rank gets its own card-style entry.
+ * Each rank gets its own card with the gradient bar separator.
  * Empty ranks show as "Vacant".
+ * Cards are separated by a blank line for breathing room.
  */
 async function buildLeaderboardEmbed(
   guildId: string,
@@ -133,7 +110,7 @@ async function buildLeaderboardEmbed(
     }
   }
 
-  // Build the description with card-style entries
+  // Build the description with card-style entries separated by blank lines
   const entries: string[] = [];
 
   for (let rank = minRank; rank <= maxRank; rank++) {
@@ -145,10 +122,13 @@ async function buildLeaderboardEmbed(
     }
   }
 
+  // Join with double newline for that clean space between cards
+  const description = entries.join('\n\u200B\n');
+
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setColor(0x1a1a2e)
-    .setDescription(entries.join('\n\n'))
+    .setDescription(description)
     .setTimestamp()
     .setFooter({ text: 'Click a username to view their Roblox profile • Updated in real-time' });
 
