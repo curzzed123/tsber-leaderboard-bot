@@ -131,16 +131,23 @@ async function findMessage(channel: TextChannel, channelId: string): Promise<Mes
 export async function initLeaderboardMessages(client: Client): Promise<void> {
   for (const lb of LEADERBOARDS) {
     try {
+      logger.info(`Init leaderboard ${lb.minRank}-${lb.maxRank}: fetching channel...`);
       const channel = await client.channels.fetch(lb.channelId) as TextChannel;
-      if (!channel) continue;
-
+      if (!channel) {
+        logger.error(`Init ${lb.minRank}-${lb.maxRank}: channel not found`);
+        continue;
+      }
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: building embeds...`);
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: finding message...`);
       const msg = await findMessage(channel, lb.channelId);
 
       if (msg) {
         await msg.edit({ embeds });
+        messageIdCache.set(lb.channelId, msg.id);
         logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited message ${msg.id}`);
       } else {
+        logger.info(`Init ${lb.minRank}-${lb.maxRank}: no message found, sending new...`);
         const newMsg = await channel.send({ embeds });
         messageIdCache.set(lb.channelId, newMsg.id);
         const gc = await getGuildConfig(GUILD_ID);
