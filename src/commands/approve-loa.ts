@@ -6,6 +6,7 @@ import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
+import { discordLog } from '../utils/discordLogger.js';
 import { discordTimestampFull } from '../utils/formatting.js';
 
 export const approveLoa: SlashCommand = {
@@ -62,5 +63,6 @@ export const approveLoa: SlashCommand = {
 
     await interaction.reply({ embeds: [embed] });
     logger.info(`/approve-loa used by ${interaction.user.id} on ${targetUser.id} for ${days} days`);
+    await discordLog('LOA Approved', `**Player:** ${player.robloxUsername}\n**Duration:** ${days} days\n**Reason:** ${reason}\n**By:** <@${interaction.user.id}>`, 'info');
   },
 };

@@ -7,6 +7,7 @@ import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasRefereePermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { closeTicket } from '../services/ticketFlow.js';
+import { discordLog } from '../utils/discordLogger.js';
 
 export const closeTicketCmd: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -63,6 +64,7 @@ export const closeTicketCmd: SlashCommand = {
 
       await interaction.editReply({ embeds: [embed] });
       logger.info(`/close-ticket used by ${interaction.user.id} in ticket ${ticket._id} — outcome: ${outcome}`);
+      await discordLog('Ticket Closed', `**Outcome:** ${outcome}\n**Challenger:** <@${ticket.challengerDiscordId}>\n**Opponent:** <@${ticket.opponentDiscordId}>\n**By:** <@${interaction.user.id}>`, 'info');
     } catch (error) {
       logger.error('Error in /close-ticket:', error);
       await interaction.editReply({ embeds: [createErrorEmbed('Error', 'Failed to close ticket. Check logs for details.')] });

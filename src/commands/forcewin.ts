@@ -8,6 +8,7 @@ import { resolveMatch } from '../services/rankShift.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
+import { discordLog } from '../utils/discordLogger.js';
 
 export const forcewin: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -53,6 +54,7 @@ export const forcewin: SlashCommand = {
 
       await interaction.editReply({ embeds: [embed] });
       logger.info(`/forcewin used by ${interaction.user.id} for ${targetUser.id} — outcome: ${outcome}`);
+      await discordLog('Force Win', `**User:** ${targetUser.username}\n**Outcome:** ${outcome === 'WIN_CHALLENGER' ? 'Challenger Wins' : 'Opponent Wins'}\n**By:** <@${interaction.user.id}>`, 'warn');
     } catch (error) {
       logger.error('Error in /forcewin:', error);
       await interaction.editReply({ embeds: [createErrorEmbed('Error', 'Failed to apply force win. Check logs for details.')] });

@@ -6,7 +6,8 @@ import { PlayerStatus, Region } from '../types/index.js';
 import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
-import { refreshLeaderboard, logEvent } from '../services/leaderboard.js';
+import { refreshLeaderboard } from '../services/leaderboard.js';
+import { discordLog } from '../utils/discordLogger.js';
 
 export const setrank: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -157,6 +158,6 @@ export const setrank: SlashCommand = {
     if (stage) logParts.push(`Stage: ${stage}`);
     if (status) logParts.push(`Status: ${status}`);
     logParts.push(`By: <@${cmd.user.id}>`);
-    await logEvent('Spot Updated', logParts.join('\n'));
+    await discordLog('Spot Updated', logParts.join('\n'), 'success');
   },
 };

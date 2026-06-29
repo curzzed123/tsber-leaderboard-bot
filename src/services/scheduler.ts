@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { resolveMatch } from './rankShift.js';
 import { closeTicket } from './ticketFlow.js';
 import { refreshLeaderboard } from './leaderboard.js';
+import { discordLog } from '../utils/discordLogger.js';
 import type { ITicket } from '../database/models/Ticket.js';
 
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -31,6 +32,7 @@ async function sweep(): Promise<void> {
 
   for (const ticket of dodgeTickets) {
     logger.info(`Dodge timer expired for ticket ${ticket._id} — auto-win to challenger`);
+      await discordLog('Dodge Auto-Win', `**Ticket:** ${ticket._id}\n**Challenger:** <@${ticket.challengerDiscordId}>\n**Opponent:** <@${ticket.opponentDiscordId}>\nOpponent didn't respond in 48h. Auto-win awarded.`, 'warn');
     try {
       await closeTicket(clientRef, ticket, 'WIN_CHALLENGER', 'SYSTEM');
     } catch (error) {
@@ -46,6 +48,7 @@ async function sweep(): Promise<void> {
 
   for (const ticket of inactiveTickets) {
     logger.info(`Inactivity timer expired for ticket ${ticket._id} — closing as invalid`);
+      await discordLog('Inactivity Close', `**Ticket:** ${ticket._id}\n**Challenger:** <@${ticket.challengerDiscordId}>\n**Opponent:** <@${ticket.opponentDiscordId}>\nNo activity for 3 days. Ticket closed as invalid.`, 'warn');
     try {
       await closeTicket(clientRef, ticket, 'INVALID', 'SYSTEM');
     } catch (error) {
@@ -64,6 +67,7 @@ async function sweep(): Promise<void> {
     player.cooldownUntil = null;
     await player.save();
     logger.debug(`Cooldown expired for player ${player.robloxUsername}`);
+    await discordLog('Cooldown Expired', `**Player:** ${player.robloxUsername}\nStatus returned to Challengeable.`, 'info');
   }
 
   // 4. Immunity expiry: players whose immunity has passed
@@ -77,6 +81,7 @@ async function sweep(): Promise<void> {
     player.immunityUntil = null;
     await player.save();
     logger.debug(`Immunity expired for player ${player.robloxUsername}`);
+    await discordLog('Immunity Expired', `**Player:** ${player.robloxUsername}\nStatus returned to Challengeable.`, 'info');
   }
 
   // 5. LOA expiry: clear approved LOA that has passed

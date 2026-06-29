@@ -7,6 +7,7 @@ import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasRefereePermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { toggleFreezeTicket } from '../services/ticketFlow.js';
+import { discordLog } from '../utils/discordLogger.js';
 
 export const freezeTimer: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -54,5 +55,6 @@ export const freezeTimer: SlashCommand = {
 
     await interaction.reply({ embeds: [embed] });
     logger.info(`/freeze-timer used by ${interaction.user.id} in ticket ${ticket._id} — frozen: ${nowFrozen}`);
+    await discordLog('Timer Freeze', `**Status:** ${nowFrozen ? 'Frozen' : 'Resumed'}\n**By:** <@${interaction.user.id}>`, 'warn');
   },
 };

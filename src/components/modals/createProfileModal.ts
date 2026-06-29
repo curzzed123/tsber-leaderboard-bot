@@ -3,7 +3,8 @@ import { Player } from '../../database/models/Player.js';
 import { Region, PlayerStatus, ModalInputCustomId } from '../../types/index.js';
 import { findRobloxUser, fetchRobloxHeadshot } from '../../services/rover.js';
 import { createSuccessEmbed, createErrorEmbed } from '../../utils/embeds.js';
-import { refreshLeaderboard, logEvent } from '../../services/leaderboard.js';
+import { refreshLeaderboard } from '../../services/leaderboard.js';
+import { discordLog } from '../../utils/discordLogger.js';
 import { logger } from '../../utils/logger.js';
 
 export async function handleCreateProfileModal(interaction: ModalSubmitInteraction): Promise<void> {
@@ -118,7 +119,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
   logger.info(`Profile created for ${interaction.user.id} — Roblox: ${robloxData.robloxUsername} (ID: ${robloxData.robloxId})`);
 
   // Log to the log channel
-  await logEvent('Profile Created', `**${player.robloxUsername}** (ID: ${player.robloxId})\nDiscord: <@${player.discordId}>\nRegion: ${player.region}`);
+  await discordLog('Profile Created', `**Roblox:** ${player.robloxUsername} (ID: ${player.robloxId})\n**Discord:** <@${player.discordId}>\n**Region:** ${player.region}`, 'success');
 
   // Refresh leaderboard in the background — user doesn't wait for this
   refreshLeaderboard(interaction.guildId).catch((e) =>

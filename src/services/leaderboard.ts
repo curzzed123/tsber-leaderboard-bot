@@ -173,20 +173,3 @@ export async function refreshLeaderboard(_guildId?: string): Promise<void> {
     }
   }
 }
-
-export async function logEvent(title: string, description: string): Promise<void> {
-  const client = (globalThis as any).client as Client | undefined;
-  if (!client) return;
-  try {
-    const channel = await client.channels.fetch(LOG_CHANNEL_ID) as TextChannel;
-    if (!channel) return;
-    const embed = new EmbedBuilder()
-      .setTitle(title)
-      .setColor(0x5865F2)
-      .setDescription(description)
-      .setTimestamp();
-    await channel.send({ embeds: [embed] });
-  } catch (error) {
-    logger.error('Failed to log event:', error);
-  }
-}

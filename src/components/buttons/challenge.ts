@@ -4,6 +4,7 @@ import { PlayerStatus } from '../../types/index.js';
 import { createErrorEmbed } from '../../utils/embeds.js';
 import { formatRank } from '../../utils/formatting.js';
 import { getEligibleOpponents } from '../../services/challengeValidation.js';
+import { discordLog } from '../../utils/discordLogger.js';
 import { StringSelectMenuBuilder, ActionRowBuilder } from 'discord.js';
 import { SelectCustomId } from '../../types/index.js';
 import type { IPlayer } from '../../database/models/Player.js';

@@ -4,6 +4,7 @@ import { validateChallenge } from '../../services/challengeValidation.js';
 import { createTicket } from '../../services/ticketFlow.js';
 import { createErrorEmbed, createSuccessEmbed } from '../../utils/embeds.js';
 import { formatRank } from '../../utils/formatting.js';
+import { discordLog } from '../../utils/discordLogger.js';
 import { logger } from '../../utils/logger.js';
 
 export async function handleChallengeOpponentSelect(interaction: StringSelectMenuInteraction): Promise<void> {
@@ -72,6 +73,7 @@ export async function handleChallengeOpponentSelect(interaction: StringSelectMen
     });
 
     logger.info(`Challenge issued: ${challenger.robloxUsername} → ${opponent.robloxUsername}`);
+    await discordLog('Challenge Issued', `**Challenger:** ${challenger.robloxUsername} (${formatRank(challenger.rank)})\n**Opponent:** ${opponent.robloxUsername} (${formatRank(opponent.rank)})\n**Discord:** <@${challenger.discordId}> → <@${opponent.discordId}>`, 'info');
   } catch (error) {
     logger.error('Error creating ticket:', error);
     await interaction.editReply({
