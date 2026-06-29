@@ -60,6 +60,9 @@ export const ButtonCustomId = {
   APPLY_LEADERBOARD: 'btn_apply_leaderboard',
   CLAIM_TICKET: 'btn_claim_ticket',
   CLOSE_TICKET: 'btn_close_ticket',
+  DM_WIN_CHALLENGER: 'dm_win_challenger',
+  DM_WIN_OPPONENT: 'dm_win_opponent',
+  DM_INVALID: 'dm_invalid',
 } as const;
 
 // ─── Modal Custom IDs ───

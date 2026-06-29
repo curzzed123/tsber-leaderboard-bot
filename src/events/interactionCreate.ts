@@ -5,7 +5,7 @@ import { handleCreateProfileButton } from '../components/buttons/createProfile.j
 import { handleChallengeButton } from '../components/buttons/challenge.js';
 import { handleApplyLeaderboardButton } from '../components/buttons/applyLeaderboard.js';
 import { handleClaimTicketButton } from '../components/buttons/claimTicket.js';
-import { handleCloseTicketButton } from '../components/buttons/closeTicket.js';
+import { handleCloseTicketButton, handleDMWinnerButton } from '../components/buttons/closeTicket.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
 import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleClaimTicketModal } from '../components/modals/claimTicketModal.js';
@@ -77,7 +77,12 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
       await handleCloseTicketButton(interaction);
       break;
     default:
-      logger.warn(`Unknown button customId: ${interaction.customId}`);
+      // Check for DM winner buttons (customId format: "dm_win_challenger:TICKET_ID")
+      if (interaction.customId.startsWith('dm_win_')) {
+        await handleDMWinnerButton(interaction);
+      } else {
+        logger.warn(`Unknown button customId: ${interaction.customId}`);
+      }
   }
 }
 
