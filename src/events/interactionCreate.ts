@@ -4,6 +4,8 @@ import { commands } from '../commands/index.js';
 import { handleCreateProfileButton } from '../components/buttons/createProfile.js';
 import { handleChallengeButton } from '../components/buttons/challenge.js';
 import { handleApplyLeaderboardButton } from '../components/buttons/applyLeaderboard.js';
+import { handleClaimTicketButton } from '../components/buttons/claimTicket.js';
+import { handleCloseTicketButton } from '../components/buttons/closeTicket.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
 import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleChallengeOpponentSelect } from '../components/selects/challengeOpponentSelect.js';
@@ -66,6 +68,12 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
       break;
     case ButtonCustomId.APPLY_LEADERBOARD:
       await handleApplyLeaderboardButton(interaction);
+      break;
+    case ButtonCustomId.CLAIM_TICKET:
+      await handleClaimTicketButton(interaction);
+      break;
+    case ButtonCustomId.CLOSE_TICKET:
+      await handleCloseTicketButton(interaction);
       break;
     default:
       logger.warn(`Unknown button customId: ${interaction.customId}`);

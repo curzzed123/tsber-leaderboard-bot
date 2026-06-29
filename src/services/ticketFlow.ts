@@ -1,4 +1,4 @@
-import { ChannelType, PermissionFlagsBits, type Client, type TextChannel, type Guild, type ChannelCreationOverwrites } from 'discord.js';
+import { ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, type Client, type TextChannel, type Guild, type ChannelCreationOverwrites } from 'discord.js';
 import { Ticket } from '../database/models/Ticket.js';
 import { Player } from '../database/models/Player.js';
 import { getGuildConfig, getGuildDurations } from '../database/models/GuildConfig.js';
@@ -41,8 +41,8 @@ export async function createTicket(
   const opponentName = sanitize(opponent.robloxUsername);
   const channelName = `ticket-${challengerName}-vs-${opponentName}`;
 
-  // Determine parent category
-  const parentId = guildConfig.ticketsCategoryId || undefined;
+  // Hardcoded private category for tickets
+  const parentId = '1521267547150749879';
 
   // Create the channel with permissions
   const overwrites: ChannelCreationOverwrites[] = [
@@ -151,13 +151,20 @@ export async function createTicket(
     )
     .setColor(0x5865F2);
 
-  // Ping referees role
+  // Ping referees role + add Close/Claim buttons
   const refereePing = guildConfig.refereesRoleId
     ? `<@&${guildConfig.refereesRoleId}>`
     : '';
+
+  const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId('btn_claim_ticket').setLabel('Claim').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('btn_close_ticket').setLabel('Close').setStyle(ButtonStyle.Danger),
+  );
+
   await channel.send({
     content: `<@${challenger.discordId}> <@${opponent.discordId}> ${refereePing} A new challenge has been issued!`,
     embeds: [embed],
+    components: [buttons],
   });
 
   logger.info(`Ticket created: ${challenger.robloxUsername} vs ${opponent.robloxUsername} (channel: ${channel.id})`);

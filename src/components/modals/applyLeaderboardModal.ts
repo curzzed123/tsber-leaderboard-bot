@@ -53,6 +53,7 @@ export async function handleApplyLeaderboardModal(interaction: ModalSubmitIntera
     const channel = await guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
+      parent: '1521267547150749879',
       permissionOverwrites: overwrites,
       topic: `Leaderboard Application: ${robloxUsername} — ${interaction.user.tag}`,
     });
