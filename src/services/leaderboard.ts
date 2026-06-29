@@ -103,21 +103,28 @@ async function findMessage(channel: TextChannel, channelId: string): Promise<Mes
 export async function initLeaderboardMessages(client: Client): Promise<void> {
   for (const lb of LEADERBOARDS) {
     try {
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: start`);
       const channel = await client.channels.fetch(lb.channelId) as TextChannel;
-      if (!channel) continue;
+      if (!channel) { logger.error(`Init ${lb.minRank}-${lb.maxRank}: channel not found`); continue; }
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: channel OK`);
+
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: embeds built (${embeds.length})`);
+
       const msg = await findMessage(channel, lb.channelId);
+      logger.info(`Init ${lb.minRank}-${lb.maxRank}: message ${msg ? 'found' : 'not found'}`);
+
       if (msg) {
         await msg.edit({ embeds });
         messageIdCache.set(lb.channelId, msg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited message ${msg.id}`);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited OK`);
       } else {
         const newMsg = await channel.send({ embeds });
         messageIdCache.set(lb.channelId, newMsg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created message ${newMsg.id}`);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created OK`);
       }
     } catch (error) {
-      logger.error(`Failed to init leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
+      logger.error(`Failed init ${lb.minRank}-${lb.maxRank}:`, error);
     }
   }
 }
