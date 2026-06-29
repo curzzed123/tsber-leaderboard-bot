@@ -10,20 +10,26 @@ import {
 } from '../utils/formatting.js';
 import { fetchRobloxHeadshot, isHeadshotExpired } from './rover.js';
 
+const GIF_URL = 'https://cdn.discordapp.com/attachments/1409616969770205296/1466903491795488810/asa_3_1.gif?ex=6a2dc756&is=6a2c75d6&hm=94ffb671b92a4fef04c6606613ae41c7e7131b6912cdd8cb714dbf268814684e&';
+
 let editTimer: NodeJS.Timeout | null = null;
 const pendingGuilds = new Set<string>();
 
-/**
- * Build a player's field value (stats block).
- * The field name is the rank + username header.
- * The field value is the stats + gradient bar.
- */
+function playerFieldName(player: any): string {
+  const rank = player.rank ?? 0;
+  let medal = '';
+  if (rank === 1) medal = '🥇 ';
+  else if (rank === 2) medal = '🥈 ';
+  else if (rank === 3) medal = '🥉 ';
+  const nameLink = robloxProfileLink(player.robloxUsername, player.robloxId);
+  return `${medal}**#${rank}**  ${nameLink}`;
+}
+
 function playerFieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
   const region = player.region ?? '-';
   const stage = player.stage || '-';
   const mention = `<@${player.discordId}>`;
-
   return (
     `ID: ${player.robloxId}\n` +
     `${mention}\n` +
@@ -33,6 +39,14 @@ function playerFieldValue(player: any): string {
     `Status: ${statusText}\n` +
     `wins: ${player.wins} losses: ${player.losses}`
   );
+}
+
+function vacantFieldName(rank: number): string {
+  let medal = '';
+  if (rank === 1) medal = '🥇 ';
+  else if (rank === 2) medal = '🥈 ';
+  else if (rank === 3) medal = '🥉 ';
+  return `${medal}**#${rank}**  Vacant`;
 }
 
 function vacantFieldValue(): string {
@@ -47,30 +61,17 @@ function vacantFieldValue(): string {
   );
 }
 
-function playerFieldName(player: any): string {
-  const rank = player.rank ?? 0;
-  let medal = '';
-  if (rank === 1) medal = '🥇 ';
-  else if (rank === 2) medal = '🥈 ';
-  else if (rank === 3) medal = '🥉 ';
-  const nameLink = robloxProfileLink(player.robloxUsername, player.robloxId);
-  return `${medal}**#${rank}**  ${nameLink}`;
-}
-
-function vacantFieldName(rank: number): string {
-  return `**#${rank}**  Vacant`;
-}
-
 /**
- * Build a leaderboard embed for a specific rank range.
- * Each rank = one embed field (gives native Discord field separator lines + spacing).
+ * Build an array of embeds for a rank range.
+ * Each rank = one embed with GIF image between entries.
+ * Max 10 embeds per message (Discord limit).
  */
-async function buildLeaderboardEmbed(
+async function buildLeaderboardEmbeds(
   guildId: string,
   minRank: number,
   maxRank: number,
   title: string,
-): Promise<EmbedBuilder> {
+): Promise<EmbedBuilder[]> {
   const players = await Player.find({ guildId, rank: { $gte: minRank, $lte: maxRank } })
     .sort({ rank: 1 })
     .lean();
@@ -89,7 +90,6 @@ async function buildLeaderboardEmbed(
     }
   }
 
-  // Build a map of rank → player
   const playerMap = new Map<number, any>();
   for (const player of players) {
     if (player.rank !== null) {
@@ -97,42 +97,50 @@ async function buildLeaderboardEmbed(
     }
   }
 
-  // Build embed fields — each rank is its own field
-  const fields: { name: string; value: string; inline: boolean }[] = [];
+  const embeds: EmbedBuilder[] = [];
+  const ranks: number[] = [];
+  for (let r = minRank; r <= maxRank; r++) ranks.push(r);
 
-  for (let rank = minRank; rank <= maxRank; rank++) {
+  // Max 10 embeds per message — each rank gets its own embed with GIF
+  // Discord limit is 10 embeds, so max 10 ranks per message
+  for (let i = 0; i < ranks.length && embeds.length < 10; i++) {
+    const rank = ranks[i];
     const player = playerMap.get(rank);
-    if (player) {
-      fields.push({
-        name: playerFieldName(player),
-        value: playerFieldValue(player),
-        inline: false,
-      });
-    } else {
-      fields.push({
-        name: vacantFieldName(rank),
-        value: vacantFieldValue(),
-        inline: false,
-      });
+    const fieldName = player ? playerFieldName(player) : vacantFieldName(rank);
+    const fieldValue = player ? playerFieldValue(player) : vacantFieldValue();
+
+    const isLast = i === ranks.length - 1 || embeds.length === 9;
+
+    const embed = new EmbedBuilder().setColor(0x1a1a2e);
+
+    // First embed gets the title
+    if (i === 0) {
+      embed.setTitle(title);
     }
+
+    // Last embed gets footer + timestamp (no GIF)
+    if (isLast) {
+      embed
+        .addFields({ name: fieldName, value: fieldValue, inline: false })
+        .setTimestamp()
+        .setFooter({ text: 'Click a username to view their Roblox profile • Updated in real-time' });
+    } else {
+      // Every other embed gets the rank + GIF separator
+      embed
+        .addFields({ name: fieldName, value: fieldValue, inline: false })
+        .setImage(GIF_URL);
+    }
+
+    embeds.push(embed);
   }
 
-  const embed = new EmbedBuilder()
-    .setTitle(title)
-    .setColor(0x1a1a2e)
-    .setTimestamp()
-    .setFooter({ text: 'Click a username to view their Roblox profile • Updated in real-time' });
-
-  // Discord max 25 fields per embed
-  embed.addFields(fields.slice(0, 25));
-
-  // Set thumbnail to #1 player's headshot in this range
+  // Set thumbnail on first embed to #1 player's headshot
   const topPlayer = players.find((p) => p.rank === minRank);
-  if (topPlayer?.robloxHeadshotUrl) {
-    embed.setThumbnail(topPlayer.robloxHeadshotUrl);
+  if (topPlayer?.robloxHeadshotUrl && embeds.length > 0) {
+    embeds[0].setThumbnail(topPlayer.robloxHeadshotUrl);
   }
 
-  return embed;
+  return embeds;
 }
 
 /**
@@ -152,12 +160,12 @@ export async function initLeaderboardMessages(
         continue;
       }
 
-      const embed = await buildLeaderboardEmbed(guildId, lb.minRank, lb.maxRank, lb.title);
+      const embeds = await buildLeaderboardEmbeds(guildId, lb.minRank, lb.maxRank, lb.title);
 
       if (lb.messageId) {
         try {
           const message = await channel.messages.fetch(lb.messageId);
-          await message.edit({ embeds: [embed] });
+          await message.edit({ embeds });
           logger.info(`Leaderboard "${lb.title}" message updated`);
           continue;
         } catch {
@@ -165,7 +173,7 @@ export async function initLeaderboardMessages(
         }
       }
 
-      const message = await channel.send({ embeds: [embed] });
+      const message = await channel.send({ embeds });
       lb.messageId = message.id;
       logger.info(`Leaderboard "${lb.title}" message created (ID: ${message.id})`);
     } catch (error) {
@@ -225,8 +233,8 @@ async function refreshLeaderboardNow(guildId: string): Promise<void> {
       }
 
       const message = await channel.messages.fetch(lb.messageId);
-      const embed = await buildLeaderboardEmbed(guildId, lb.minRank, lb.maxRank, lb.title);
-      await message.edit({ embeds: [embed] });
+      const embeds = await buildLeaderboardEmbeds(guildId, lb.minRank, lb.maxRank, lb.title);
+      await message.edit({ embeds });
       logger.debug(`Leaderboard "${lb.title}" refreshed for guild ${guildId}`);
     } catch (error) {
       logger.error(`Failed to edit leaderboard "${lb.title}":`, error);
