@@ -19,8 +19,8 @@ export function formatRecord(wins: number, losses: number): string {
  * Format a player's streak for display.
  */
 export function formatStreak(streak: number): string {
-  if (streak > 0) return `🔥 ${streak}W`;
-  if (streak < 0) return `💀 ${Math.abs(streak)}L`;
+  if (streak > 0) return `${streak}W`;
+  if (streak < 0) return `${Math.abs(streak)}L`;
   return '—';
 }
 
@@ -50,13 +50,13 @@ export function getStatusText(status: PlayerStatus): string {
 export function getStatusEmoji(status: PlayerStatus): string {
   switch (status) {
     case PlayerStatus.CHALLENGING:
-      return '⚔️';
+      return '';
     case PlayerStatus.CHALLENGED:
-      return '🎯';
+      return '';
     case PlayerStatus.IMMUNE:
-      return '🛡️';
+      return '';
     case PlayerStatus.COOLDOWN:
-      return '⏳';
+      return '';
     default:
       return '';
   }

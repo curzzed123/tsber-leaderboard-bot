@@ -59,7 +59,7 @@ export async function handleApplyLeaderboardModal(interaction: ModalSubmitIntera
 
     // Send the application embed
     const embed = new EmbedBuilder()
-      .setTitle('📋 Leaderboard Application')
+      .setTitle('Leaderboard Application')
       .setColor(0x5865F2)
       .setDescription(
         `**Applicant:** <@${interaction.user.id}>\n` +

@@ -18,9 +18,9 @@ export const closeTicketCmd: SlashCommand = {
         .setDescription('The match outcome')
         .setRequired(true)
         .addChoices(
-          { name: '🏆 Challenger Wins', value: 'WIN_CHALLENGER' },
-          { name: '🛡️ Opponent Wins', value: 'WIN_OPPONENT' },
-          { name: '❌ Invalid / No Show', value: 'INVALID' },
+          { name: 'Challenger Wins', value: 'WIN_CHALLENGER' },
+          { name: 'Opponent Wins', value: 'WIN_OPPONENT' },
+          { name: 'Invalid / No Show', value: 'INVALID' },
         ),
     )
     .addStringOption((option) =>
@@ -54,9 +54,9 @@ export const closeTicketCmd: SlashCommand = {
       await closeTicket(interaction.client, ticket, outcome, interaction.user.id, reason);
 
       const outcomeText: Record<MatchOutcome, string> = {
-        WIN_CHALLENGER: '🏆 Challenger Wins',
-        WIN_OPPONENT: '🛡️ Opponent Wins',
-        INVALID: '❌ Invalid',
+        WIN_CHALLENGER: 'Challenger Wins',
+        WIN_OPPONENT: 'Opponent Wins',
+        INVALID: 'Invalid',
       };
 
       const embed = createSuccessEmbed('Ticket Closed', `**Outcome:** ${outcomeText[outcome]}\n\nThe ticket channel will be deleted shortly.`);

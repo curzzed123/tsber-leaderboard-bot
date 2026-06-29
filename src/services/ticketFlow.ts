@@ -126,26 +126,26 @@ export async function createTicket(
 
   // Send the initial ticket message
   const embed = createBaseEmbed(
-    '⚔️ Challenge Ticket',
+    'Challenge Ticket',
     `**${challenger.robloxUsername}** (${formatRank(challenger.rank)}) has challenged **${opponent.robloxUsername}** (${formatRank(opponent.rank)})!`,
   )
     .addFields(
       {
-        name: '🎯 Challenger',
+        name: 'Challenger',
         value: `<@${challenger.discordId}> — ${challenger.robloxUsername}\nRank: ${formatRank(challenger.rank)} | Region: ${challenger.region}`,
         inline: true,
       },
       {
-        name: '🛡️ Opponent',
+        name: 'Opponent',
         value: `<@${opponent.discordId}> — ${opponent.robloxUsername}\nRank: ${formatRank(opponent.rank)} | Region: ${opponent.region}`,
         inline: true,
       },
       {
-        name: '⏰ Dodge Deadline',
+        name: 'Dodge Deadline',
         value: `Opponent must respond by ${discordTimestampFull(dodgeDeadline)} (${discordTimestamp(dodgeDeadline)})\nIf no response, auto-win to challenger.`,
       },
       {
-        name: '📋 Instructions',
+        name: 'Instructions',
         value: '1. Both fighters schedule a time to fight.\n2. A referee must be present.\n3. Use `/close-ticket` to report the result.\n4. If you need more time, use `/freeze-timer` (both fighters must agree).',
       },
     )
@@ -265,9 +265,9 @@ export async function closeTicket(
 
       // Send closure message
       const outcomeText: Record<MatchOutcome, string> = {
-        WIN_CHALLENGER: '🏆 **Challenger Wins!**',
-        WIN_OPPONENT: '🛡️ **Opponent Wins!**',
-        INVALID: '❌ **Ticket Closed (Invalid)**',
+        WIN_CHALLENGER: '**Challenger Wins!**',
+        WIN_OPPONENT: '**Opponent Wins!**',
+        INVALID: '**Ticket Closed (Invalid)**',
       };
 
       const embed = createSuccessEmbed('Ticket Closed', outcomeText[outcome]);

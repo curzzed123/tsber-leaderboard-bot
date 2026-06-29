@@ -28,14 +28,14 @@ export async function discordLog(title: string, description: string, type: 'succ
     };
 
     const icons = {
-      success: '✅',
-      error: '❌',
-      warn: '⚠️',
-      info: '📋',
+      success: '',
+      error: '',
+      warn: '',
+      info: '',
     };
 
     const embed = new EmbedBuilder()
-      .setTitle(`${icons[type]} ${title}`)
+      .setTitle(title)
       .setColor(colors[type])
       .setDescription(description)
       .setTimestamp();

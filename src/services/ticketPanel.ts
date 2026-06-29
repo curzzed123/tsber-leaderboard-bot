@@ -13,7 +13,7 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
   const textChannel = channel as TextChannel;
 
   const embed = new EmbedBuilder()
-    .setTitle('🎫 Challenge Tickets')
+    .setTitle('Challenge Tickets')
     .setColor(0x5865F2)
     .setDescription(
       '**Welcome to the TSBER Challenge System!**\n\n' +
@@ -26,12 +26,12 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
     .setTimestamp();
 
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(ButtonCustomId.CREATE_PROFILE).setLabel('Create').setStyle(ButtonStyle.Success).setEmoji('📝'),
-    new ButtonBuilder().setCustomId(ButtonCustomId.CHALLENGE).setLabel('Challenge').setStyle(ButtonStyle.Primary).setEmoji('⚔️'),
+    new ButtonBuilder().setCustomId(ButtonCustomId.CREATE_PROFILE).setLabel('Create').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(ButtonCustomId.CHALLENGE).setLabel('Challenge').setStyle(ButtonStyle.Primary),
   );
 
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(ButtonCustomId.APPLY_LEADERBOARD).setLabel('Apply for Leaderboard').setStyle(ButtonStyle.Secondary).setEmoji('📋'),
+    new ButtonBuilder().setCustomId(ButtonCustomId.APPLY_LEADERBOARD).setLabel('Apply for Leaderboard').setStyle(ButtonStyle.Secondary),
   );
 
   const messages = await textChannel.messages.fetch({ limit: 20 });

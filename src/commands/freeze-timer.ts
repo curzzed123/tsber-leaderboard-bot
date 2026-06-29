@@ -47,7 +47,7 @@ export const freezeTimer: SlashCommand = {
     const nowFrozen = await toggleFreezeTicket(ticket);
 
     const embed = createSuccessEmbed(
-      nowFrozen ? '⏸️ Timer Frozen' : '▶️ Timer Resumed',
+      nowFrozen ? 'Timer Frozen' : 'Timer Resumed',
       nowFrozen
         ? 'The dodge and inactivity timers have been frozen. Use `/freeze-timer` again to resume.'
         : 'The timers have been resumed. Deadlines have been recalculated.',

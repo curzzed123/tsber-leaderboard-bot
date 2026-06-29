@@ -47,10 +47,10 @@ export interface ValidationResult {
 // ─── Player Status Emoji Mapping ───
 export const STATUS_EMOJI: Record<PlayerStatus, string> = {
   [PlayerStatus.IDLE]: '',
-  [PlayerStatus.CHALLENGING]: '⚔️',
-  [PlayerStatus.CHALLENGED]: '🛡️',
-  [PlayerStatus.IMMUNE]: '🛡️',
-  [PlayerStatus.COOLDOWN]: '⏳',
+  [PlayerStatus.CHALLENGING]: '',
+  [PlayerStatus.CHALLENGED]: '',
+  [PlayerStatus.IMMUNE]: '',
+  [PlayerStatus.COOLDOWN]: '',
 };
 
 // ─── Button Custom IDs ───

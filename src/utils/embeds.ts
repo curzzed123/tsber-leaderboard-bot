@@ -1,7 +1,6 @@
 import { EmbedBuilder, ColorResolvable } from 'discord.js';
-import { PlayerStatus } from '../types/index.js';
 
-const BRAND_COLOR: ColorResolvable = 0x5865F2; // Discord blurple
+const BRAND_COLOR: ColorResolvable = 0x5865F2;
 
 export function createBaseEmbed(
   title: string,
@@ -21,24 +20,24 @@ export function createBaseEmbed(
 
 export function createErrorEmbed(title: string, description: string): EmbedBuilder {
   return new EmbedBuilder()
-    .setTitle(`❌ ${title}`)
-    .setColor(0xED4245) // red
+    .setTitle(title)
+    .setColor(0xED4245)
     .setDescription(description)
     .setTimestamp();
 }
 
 export function createSuccessEmbed(title: string, description: string): EmbedBuilder {
   return new EmbedBuilder()
-    .setTitle(`✅ ${title}`)
-    .setColor(0x57F287) // green
+    .setTitle(title)
+    .setColor(0x57F287)
     .setDescription(description)
     .setTimestamp();
 }
 
 export function createWarningEmbed(title: string, description: string): EmbedBuilder {
   return new EmbedBuilder()
-    .setTitle(`⚠️ ${title}`)
-    .setColor(0xFEE75C) // yellow
+    .setTitle(title)
+    .setColor(0xFEE75C)
     .setDescription(description)
     .setTimestamp();
 }
