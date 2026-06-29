@@ -4,3 +4,20 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Codely CLI internal files
+.codely/
+.codely-cli/
+
+# Old scripts (not part of the bot)
+fix-*.cjs
+test-*.ts
+roblox-bridge/
+__pycache__/
+*.pyc
+
+# Temp scripts
+quick-send.ts
+send-messages.ts
+update-messages.ts
+check-channel.ts
