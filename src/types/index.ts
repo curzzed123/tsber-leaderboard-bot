@@ -64,6 +64,7 @@ export const ButtonCustomId = {
 export const ModalCustomId = {
   CREATE_PROFILE: 'modal_create_profile',
   CHALLENGE: 'modal_challenge',
+  APPLY_LEADERBOARD: 'modal_apply_leaderboard',
 } as const;
 
 // ─── Select Custom IDs ───
