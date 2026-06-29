@@ -18,6 +18,5 @@
     "mongoose": "^8.16.4",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3"
-  },
-  "devDependencies": {}
+  }
 }
