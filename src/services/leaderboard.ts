@@ -87,7 +87,7 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x1a1a2e)
+      .setColor(player ? 0x1a1a2e : 0x2b2d31)
       .addFields({
         name,
         value: player ? fieldValue(player) : vacantFieldValue(),
