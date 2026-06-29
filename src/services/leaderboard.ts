@@ -25,21 +25,19 @@ function vacantFieldName(rank: number): string {
 
 function fieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
-  const profileLink = `https://www.roblox.com/users/${player.robloxId}/profile`;
-  const discordTag = player.discordUsername || 'unknown';
   return (
-    `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
-    `| @${discordTag} |\n` +
     `ID: ${player.robloxId}\n` +
+    `| <@${player.discordId}> |\n` +
+    `<< ,${player.robloxUsername}, >>\n` +
     `Region: ${player.region ?? '-'}\n` +
-    `Stage: **${player.stage || '-'}**\n` +
+    `Stage: ${player.stage || '-'}\n` +
     `Status: ${statusText}\n` +
     `wins: ${player.wins} losses: ${player.losses}`
   );
 }
 
 function vacantFieldValue(): string {
-  return '<< | .vacant. | >>\nNo player registered\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
+  return 'ID: —\n| Vacant |\n<< ,vacant, >>\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
 }
 
 async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuilder[]> {
