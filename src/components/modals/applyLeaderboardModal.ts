@@ -1,6 +1,6 @@
 import type { ModalSubmitInteraction } from 'discord.js';
-import { ChannelType, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { Region, ModalInputCustomId } from '../../types/index.js';
+import { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { Region, ModalInputCustomId, ButtonCustomId } from '../../types/index.js';
 import { createSuccessEmbed, createErrorEmbed } from '../../utils/embeds.js';
 import { discordLog } from '../../utils/discordLogger.js';
 import { logger } from '../../utils/logger.js';
@@ -71,9 +71,14 @@ export async function handleApplyLeaderboardModal(interaction: ModalSubmitIntera
       .setTimestamp()
       .setFooter({ text: 'Staff can use /setrank to place this player if accepted' });
 
+    const closeBtn = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(ButtonCustomId.CLOSE_TICKET).setLabel('Close').setStyle(ButtonStyle.Danger),
+    );
+
     await channel.send({
       content: `<@${interaction.user.id}> <@&${REFEREES_ROLE_ID}> A new leaderboard application has been submitted!`,
       embeds: [embed],
+      components: [closeBtn],
     });
 
     await interaction.editReply({
