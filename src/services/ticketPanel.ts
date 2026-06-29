@@ -7,11 +7,12 @@ import { logger } from '../utils/logger.js';
 const TICKETS_CHANNEL_ID = '1509211671464513547';
 
 export async function setupTicketPanel(client: Client, _guildId: string): Promise<void> {
-  const channel = await client.channels.fetch(TICKETS_CHANNEL_ID) as TextChannel;
-  if (!channel || !(channel instanceof TextChannel)) {
+  const channel = await client.channels.fetch(TICKETS_CHANNEL_ID);
+  if (!channel || !channel.isTextBased()) {
     logger.error(`Tickets channel ${TICKETS_CHANNEL_ID} not found or not a text channel`);
     return;
   }
+  const textChannel = channel as TextChannel;
 
   const embed = new EmbedBuilder()
     .setTitle('🎫 Challenge Tickets')
@@ -39,14 +40,14 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
   );
 
   // Try to find existing bot message
-  const messages = await channel.messages.fetch({ limit: 20 });
+  const messages = await textChannel.messages.fetch({ limit: 20 });
   const botMsg = messages.find((m) => m.author.id === client.user!.id && m.embeds.length > 0);
 
   if (botMsg) {
     await botMsg.edit({ embeds: [embed], components: [row] });
     logger.info(`Ticket panel updated (message ${botMsg.id})`);
   } else {
-    const message = await channel.send({ embeds: [embed], components: [row] });
+    const message = await textChannel.send({ embeds: [embed], components: [row] });
     logger.info(`Ticket panel created (message ${message.id})`);
   }
 }
