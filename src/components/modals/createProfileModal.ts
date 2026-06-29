@@ -33,7 +33,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
 
   if (existing) {
     await interaction.reply({
-      embeds: [createErrorEmbed('Already Registered', `You are already registered as **${existing.robloxUsername}**. Contact staff if you need to update your profile.`)],
+      embeds: [createErrorEmbed('Already Registered', `You are already registered as **${existing.robloxUsername}**.`)],
       ephemeral: true,
     });
     return;
@@ -41,7 +41,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
 
   await interaction.deferReply({ ephemeral: true });
 
-  // Search Roblox directly by username — no Rover needed
+  // Search Roblox by username
   const robloxData = await findRobloxUser(robloxUsername);
 
   if (!robloxData) {
@@ -54,15 +54,22 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     return;
   }
 
-  // Fetch Roblox headshot automatically
-  const { url: headshotUrl, expiresAt: headshotExpiresAt } = await fetchRobloxHeadshot(robloxData.robloxId);
-
   // Get optional custom headshot URL
   let customHeadshotUrl: string | null = null;
   try {
     customHeadshotUrl = interaction.fields.getTextInputValue(ModalInputCustomId.CUSTOM_HEADSHOT_URL)?.trim() || null;
   } catch {
     customHeadshotUrl = null;
+  }
+
+  // Fetch headshot ONLY if no custom URL provided — saves an API call
+  let headshotUrl = '';
+  let headshotExpiresAt = new Date();
+
+  if (!customHeadshotUrl) {
+    const headshot = await fetchRobloxHeadshot(robloxData.robloxId);
+    headshotUrl = headshot.url;
+    headshotExpiresAt = headshot.expiresAt;
   }
 
   const finalHeadshotUrl = customHeadshotUrl || headshotUrl;
@@ -93,9 +100,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     loa: { approved: false, until: null, reason: '' },
   });
 
-  // Refresh leaderboard immediately — edits existing message
-  await refreshLeaderboard(interaction.guildId);
-
+  // Reply immediately — don't make the user wait for leaderboard refresh
   const embed = createSuccessEmbed(
     'Profile Created',
     `Welcome to the leaderboard, **${player.robloxUsername}**!\n\n` +
@@ -110,4 +115,9 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
 
   await interaction.editReply({ embeds: [embed] });
   logger.info(`Profile created for ${interaction.user.id} — Roblox: ${robloxData.robloxUsername} (ID: ${robloxData.robloxId})`);
+
+  // Refresh leaderboard in the background — user doesn't wait for this
+  refreshLeaderboard(interaction.guildId).catch((e) =>
+    logger.error('Background leaderboard refresh failed:', e),
+  );
 }
