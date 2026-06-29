@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import type { SlashCommand } from './index.js';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 import { Player } from '../database/models/Player.js';
 import { PlayerStatus } from '../types/index.js';
 import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
@@ -56,7 +56,7 @@ export const modify: SlashCommand = {
       option.setName('rank').setDescription('Set rank position 1-30').setRequired(false).setMinValue(1).setMaxValue(30).setAutocomplete(true),
     ) as SlashCommandBuilder,
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+  async execute(interaction: ChatInputCommandInteraction | AutocompleteInteraction): Promise<void> {
     // Handle autocomplete
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused();
@@ -68,25 +68,27 @@ export const modify: SlashCommand = {
       return;
     }
 
-    if (!hasStaffPermission(interaction.member as any)) {
-      await interaction.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only staff (Administrator) can use this command.')], ephemeral: true });
+    const cmd = interaction as ChatInputCommandInteraction;
+
+    if (!hasStaffPermission(cmd.member as any)) {
+      await cmd.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only staff (Administrator) can use this command.')], ephemeral: true });
       return;
     }
 
-    const targetUser = interaction.options.getUser('user', true);
-    const wins = interaction.options.getInteger('wins');
-    const losses = interaction.options.getInteger('losses');
-    const streak = interaction.options.getInteger('streak');
-    const status = interaction.options.getString('status');
-    const region = interaction.options.getString('region');
-    const stage = interaction.options.getString('stage');
-    const rank = interaction.options.getInteger('rank');
+    const targetUser = cmd.options.getUser('user', true);
+    const wins = cmd.options.getInteger('wins');
+    const losses = cmd.options.getInteger('losses');
+    const streak = cmd.options.getInteger('streak');
+    const status = cmd.options.getString('status');
+    const region = cmd.options.getString('region');
+    const stage = cmd.options.getString('stage');
+    const rank = cmd.options.getInteger('rank');
 
-    const guildId = interaction.guildId!;
+    const guildId = cmd.guildId!;
 
     const player = await Player.findOne({ guildId, discordId: targetUser.id });
     if (!player) {
-      await interaction.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered.`)], ephemeral: true });
+      await cmd.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered.`)], ephemeral: true });
       return;
     }
 
@@ -110,15 +112,15 @@ export const modify: SlashCommand = {
     if (rank !== null) { changes.push(`Rank: ${player.rank ? `#${player.rank}` : 'Unranked'} → #${rank}`); player.rank = rank; }
 
     if (changes.length === 0) {
-      await interaction.reply({ embeds: [createErrorEmbed('No Changes', 'No fields were provided. Specify at least one field to modify.')], ephemeral: true });
+      await cmd.reply({ embeds: [createErrorEmbed('No Changes', 'No fields were provided. Specify at least one field to modify.')], ephemeral: true });
       return;
     }
 
     await player.save();
-    logger.info(`Player modified: ${player.robloxUsername} by ${interaction.user.id} — ${changes.join(', ')}`);
+    logger.info(`Player modified: ${player.robloxUsername} by ${cmd.user.id} — ${changes.join(', ')}`);
 
     // Reply immediately
-    await interaction.reply({
+    await cmd.reply({
       embeds: [createSuccessEmbed(
         'Player Modified',
         `**${player.robloxUsername}**\n\n${changes.join('\n')}\n\n*Leaderboard updated.*`,
@@ -129,6 +131,6 @@ export const modify: SlashCommand = {
     refreshLeaderboard(guildId).catch((e) => logger.error('Leaderboard refresh failed:', e));
 
     // Log to log channel
-    await discordLog('Player Modified', `**Player:** ${player.robloxUsername}\n**Changes:**\n${changes.join('\n')}\n**By:** <@${interaction.user.id}>`, 'info');
+    await discordLog('Player Modified', `**Player:** ${player.robloxUsername}\n**Changes:**\n${changes.join('\n')}\n**By:** <@${cmd.user.id}>`, 'info');
   },
 };
