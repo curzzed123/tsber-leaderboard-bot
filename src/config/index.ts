@@ -9,11 +9,11 @@ export const config = {
   durations: {
     dodgeMs: 48 * 60 * 60 * 1000,
     inactivityMs: 3 * 24 * 60 * 60 * 1000,
-    cooldownMs: 3 * 24 * 60 * 60 * 1000,
-    cooldownTop10Ms: 7 * 24 * 60 * 60 * 1000,
-    immunityMs: 3 * 24 * 60 * 60 * 1000,
-    immunityTop10Ms: 7 * 24 * 60 * 60 * 1000,
-    lockoutMs: 3 * 24 * 60 * 60 * 1000,
+    cooldownMs: 2 * 24 * 60 * 60 * 1000,          // 2 days
+    cooldownTop10Ms: 7 * 24 * 60 * 60 * 1000,     // 1 week for Top 10
+    immunityMs: 2 * 24 * 60 * 60 * 1000,          // 2 days
+    immunityTop10Ms: 7 * 24 * 60 * 60 * 1000,     // 1 week for Top 10
+    lockoutMs: 3 * 24 * 60 * 60 * 1000,           // 3 days re-challenge block
   },
 
   scheduler: {

@@ -8,6 +8,7 @@ import { resolveMatch } from './rankShift.js';
 import { refreshLeaderboard } from './leaderboard.js';
 import { createBaseEmbed, createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { formatRank, discordTimestamp, discordTimestampFull } from '../utils/formatting.js';
+import { discordLog } from '../utils/discordLogger.js';
 import type { ITicket } from '../database/models/Ticket.js';
 import type { IPlayer } from '../database/models/Player.js';
 import type { MatchOutcome } from '../types/index.js';
@@ -160,6 +161,9 @@ export async function createTicket(
   });
 
   logger.info(`Ticket created: ${challenger.robloxUsername} vs ${opponent.robloxUsername} (channel: ${channel.id})`);
+
+  // Log to Discord log channel
+  await discordLog('Challenge Ticket Opened', `**Challenger:** ${challenger.robloxUsername} (${formatRank(challenger.rank)}) — <@${challenger.discordId}>\n**Opponent:** ${opponent.robloxUsername} (${formatRank(opponent.rank)}) — <@${opponent.discordId}>\n**Channel:** <#${channel.id}>\n**Dodge Deadline:** ${discordTimestampFull(dodgeDeadline)}`, 'info');
 
   // Refresh leaderboard to show new statuses
   await refreshLeaderboard(guildId);
