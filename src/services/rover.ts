@@ -72,7 +72,7 @@ export async function findRobloxUser(username: string): Promise<RobloxUser | nul
 export async function fetchRobloxHeadshot(robloxId: number): Promise<{ url: string; expiresAt: Date }> {
   try {
     const response = await fetch(
-      `https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=false`,
+      `https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${robloxId}&size=420x420&format=Png&isCircular=false`,
       { signal: AbortSignal.timeout(10000) },
     );
 
