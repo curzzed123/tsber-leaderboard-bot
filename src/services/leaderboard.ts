@@ -18,7 +18,7 @@ const GUILD_ID = '1508900900381524089';
 
 const messageIdCache = new Map<string, string>();
 
-// Field name: just rank + username (plain text, no link — Discord doesn't render links in field names)
+// Field name: rank + username (bold, plain text)
 function fieldName(player: any): string {
   return `**#${player.rank}**  ${player.robloxUsername}`;
 }
@@ -27,15 +27,15 @@ function vacantFieldName(rank: number): string {
   return `**#${rank}**  Vacant`;
 }
 
-// Field value: the clickable Roblox profile link goes HERE (blue in Discord)
+// Field value: << | .username. | >> is the blue clickable Roblox link
+// Discord mention (<@id>) is on its own line below
 function fieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
   const profileLink = `https://www.roblox.com/users/${player.robloxId}/profile`;
-  // [username](url) renders as blue clickable text in embed field values
   return (
-    `[${player.robloxUsername}](${profileLink})\n` +
+    `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
+    `<@${player.discordId}>\n` +
     `ID: ${player.robloxId}\n` +
-    `<< | .${player.robloxUsername}. | >>\n` +
     `Region: ${player.region ?? '-'}\n` +
     `Stage: **${player.stage || '-'}**\n` +
     `Status: ${statusText}\n` +
@@ -44,7 +44,7 @@ function fieldValue(player: any): string {
 }
 
 function vacantFieldValue(): string {
-  return 'No player registered\n<< | .vacant. | >>\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
+  return '<< | .vacant. | >>\nNo player registered\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
 }
 
 async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuilder[]> {
