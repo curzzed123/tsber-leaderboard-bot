@@ -3,7 +3,9 @@ import { logger } from '../utils/logger.js';
 import { commands } from '../commands/index.js';
 import { handleCreateProfileButton } from '../components/buttons/createProfile.js';
 import { handleChallengeButton } from '../components/buttons/challenge.js';
+import { handleApplyLeaderboardButton } from '../components/buttons/applyLeaderboard.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
+import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleChallengeOpponentSelect } from '../components/selects/challengeOpponentSelect.js';
 import { ButtonCustomId, ModalCustomId, SelectCustomId } from '../types/index.js';
 
@@ -62,6 +64,9 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
     case ButtonCustomId.CHALLENGE:
       await handleChallengeButton(interaction);
       break;
+    case ButtonCustomId.APPLY_LEADERBOARD:
+      await handleApplyLeaderboardButton(interaction);
+      break;
     default:
       logger.warn(`Unknown button customId: ${interaction.customId}`);
   }
@@ -71,6 +76,9 @@ async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
   switch (interaction.customId) {
     case ModalCustomId.CREATE_PROFILE:
       await handleCreateProfileModal(interaction);
+      break;
+    case ModalCustomId.APPLY_LEADERBOARD:
+      await handleApplyLeaderboardModal(interaction);
       break;
     default:
       logger.warn(`Unknown modal customId: ${interaction.customId}`);

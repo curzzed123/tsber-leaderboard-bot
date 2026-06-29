@@ -57,6 +57,7 @@ export const STATUS_EMOJI: Record<PlayerStatus, string> = {
 export const ButtonCustomId = {
   CREATE_PROFILE: 'btn_create_profile',
   CHALLENGE: 'btn_challenge',
+  APPLY_LEADERBOARD: 'btn_apply_leaderboard',
 } as const;
 
 // ─── Modal Custom IDs ───
@@ -76,4 +77,7 @@ export const ModalInputCustomId = {
   REGION: 'input_region',
   OPPONENT_USERNAME: 'input_opponent_username',
   CUSTOM_HEADSHOT_URL: 'input_custom_headshot_url',
+  APPLY_ROBLOX_USERNAME: 'input_apply_roblox_username',
+  APPLY_REGION: 'input_apply_region',
+  APPLY_EXPERIENCE: 'input_apply_experience',
 } as const;

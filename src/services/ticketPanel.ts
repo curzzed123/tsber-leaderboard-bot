@@ -4,11 +4,6 @@ import { logger } from '../utils/logger.js';
 
 const TICKETS_CHANNEL_ID = '1509211671464513547';
 
-/**
- * Setup ticket panel — ONLY EDITS existing message.
- * Creates one only if none exists (first boot).
- * Called ONCE on startup.
- */
 export async function setupTicketPanel(client: Client, _guildId: string): Promise<void> {
   const channel = await client.channels.fetch(TICKETS_CHANNEL_ID);
   if (!channel || !channel.isTextBased()) {
@@ -23,27 +18,30 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
     .setDescription(
       '**Welcome to the TSBER Challenge System!**\n\n' +
       '**Create** — Register your profile with Roblox verification to join the leaderboard.\n' +
-      '**Challenge** — Select an eligible opponent to challenge and start a match ticket.\n\n' +
+      '**Challenge** — Select an eligible opponent to challenge and start a match ticket.\n' +
+      '**Apply for Leaderboard** — Open a ticket to apply for a spot on the leaderboard.\n\n' +
       'Click a button below to get started.',
     )
     .setFooter({ text: 'Persistent buttons • Work even after bot restarts' })
     .setTimestamp();
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId(ButtonCustomId.CREATE_PROFILE).setLabel('Create').setStyle(ButtonStyle.Success).setEmoji('📝'),
     new ButtonBuilder().setCustomId(ButtonCustomId.CHALLENGE).setLabel('Challenge').setStyle(ButtonStyle.Primary).setEmoji('⚔️'),
   );
 
-  // Find existing bot message
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId(ButtonCustomId.APPLY_LEADERBOARD).setLabel('Apply for Leaderboard').setStyle(ButtonStyle.Secondary).setEmoji('📋'),
+  );
+
   const messages = await textChannel.messages.fetch({ limit: 20 });
   const botMsg = messages.find((m) => m.author.id === client.user!.id && m.embeds.length > 0);
 
   if (botMsg) {
-    await botMsg.edit({ embeds: [embed], components: [row] });
+    await botMsg.edit({ embeds: [embed], components: [row1, row2] });
     logger.info(`Ticket panel edited (message ${botMsg.id})`);
   } else {
-    // First boot — no message exists
-    const message = await textChannel.send({ embeds: [embed], components: [row] });
+    const message = await textChannel.send({ embeds: [embed], components: [row1, row2] });
     logger.info(`Ticket panel created (message ${message.id})`);
   }
 }
