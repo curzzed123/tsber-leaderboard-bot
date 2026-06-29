@@ -96,16 +96,17 @@ export async function initLeaderboardMessages(client: Client): Promise<void> {
       if (!channel) continue;
 
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
+      const msg = await findMessage(channel, lb.channelId);
 
-      // Delete old message, send fresh
-      const oldMsg = await findMessage(channel, lb.channelId);
-      if (oldMsg) {
-        try { await oldMsg.delete(); } catch {}
+      if (msg) {
+        await msg.edit({ embeds });
+        messageIdCache.set(lb.channelId, msg.id);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited message (${embeds.length} embeds)`);
+      } else {
+        const newMsg = await channel.send({ embeds });
+        messageIdCache.set(lb.channelId, newMsg.id);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created message (${embeds.length} embeds)`);
       }
-
-      const newMsg = await channel.send({ embeds });
-      messageIdCache.set(lb.channelId, newMsg.id);
-      logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: sent fresh message (${embeds.length} embeds)`);
     } catch (error) {
       logger.error(`Failed to init leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
     }
