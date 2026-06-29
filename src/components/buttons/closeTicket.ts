@@ -82,7 +82,7 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
 
   // Not claimed at all — close as invalid
   try {
-    await resolveMatch(interaction.client, ticket, 'INVALID' as MatchOutcome, interaction.user.id, 'Closed via Close button (not claimed)');
+    await resolveMatch(ticket, 'INVALID' as MatchOutcome, interaction.user.id);
     await interaction.editReply({ content: 'Ticket closed as invalid. Channel will be deleted shortly.' });
 
     setTimeout(async () => {
