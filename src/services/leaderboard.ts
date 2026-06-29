@@ -5,6 +5,8 @@ import { logger } from '../utils/logger.js';
 import { getStatusText } from '../utils/formatting.js';
 import { fetchRobloxHeadshot, isHeadshotExpired } from './rover.js';
 
+const GIF_URL = 'https://cdn.discordapp.com/attachments/1409616969770205296/1466903491795488810/asa_3_1.gif?ex=6a2dc756&is=6a2c75d6&hm=94ffb671b92a4fef04c6606613ae41c7e7131b6912cdd8cb714dbf268814684e&';
+
 const LEADERBOARDS = [
   { channelId: '1509210175406604328', minRank: 1, maxRank: 10 },
   { channelId: '1509210720011554987', minRank: 11, maxRank: 20 },
@@ -16,19 +18,41 @@ const LOG_CHANNEL_ID = '1521245230505005118';
 
 const messageIdCache = new Map<string, string>();
 
-function fieldName(player: any): string {
-  return `**#${player.rank}**  ${player.robloxUsername}`;
+/**
+ * Field name: #rank DiscordDisplayName
+ * We fetch the guild member's display name (server nickname).
+ */
+async function fieldName(player: any, client: Client): Promise<string> {
+  let displayName = player.robloxUsername;
+  try {
+    const guild = await client.guilds.fetch(GUILD_ID);
+    const member = await guild.members.fetch(player.discordId);
+    displayName = member.displayName;
+  } catch {}
+  return `**#${player.rank}**  ${displayName}`;
 }
+
 function vacantFieldName(rank: number): string {
   return `**#${rank}**  Vacant`;
 }
 
+/**
+ * Field value — exact format:
+ * ID: 509
+ * | <@discord_id> |          ← Discord mention (blue, shows server name)
+ * << | .username. | >>       ← blue clickable Roblox profile link
+ * Region: -
+ * Stage: OLS
+ * Status: Challengeable
+ * wins: 0 losses: 0
+ */
 function fieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
+  const profileLink = `https://www.roblox.com/users/${player.robloxId}/profile`;
   return (
     `ID: ${player.robloxId}\n` +
     `| <@${player.discordId}> |\n` +
-    `<< ,${player.robloxUsername}, >>\n` +
+    `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
     `Region: ${player.region ?? '-'}\n` +
     `Stage: ${player.stage || '-'}\n` +
     `Status: ${statusText}\n` +
@@ -37,10 +61,11 @@ function fieldValue(player: any): string {
 }
 
 function vacantFieldValue(): string {
-  return 'ID: —\n| Vacant |\n<< ,vacant, >>\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
+  return 'ID: —\n| Vacant |\n<< | .vacant. | >>\nRegion: —\nStage: —\nStatus: Empty\nwins: 0 losses: 0';
 }
 
 async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuilder[]> {
+  const client = (globalThis as any).client as Client | undefined;
   const players = await Player.find({ guildId: GUILD_ID, rank: { $gte: minRank, $lte: maxRank } })
     .sort({ rank: 1 })
     .lean();
@@ -51,13 +76,25 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
   const embeds: EmbedBuilder[] = [];
   for (let rank = minRank; rank <= maxRank && embeds.length < 10; rank++) {
     const player = playerMap.get(rank);
+
+    let name: string;
+    if (player && client) {
+      name = await fieldName(player, client);
+    } else if (player) {
+      name = `**#${player.rank}**  ${player.robloxUsername}`;
+    } else {
+      name = vacantFieldName(rank);
+    }
+
     const embed = new EmbedBuilder()
       .setColor(0x1a1a2e)
       .addFields({
-        name: player ? fieldName(player) : vacantFieldName(rank),
+        name,
         value: player ? fieldValue(player) : vacantFieldValue(),
         inline: false,
-      });
+      })
+      .setImage(GIF_URL);
+
     if (player?.robloxHeadshotUrl) embed.setThumbnail(player.robloxHeadshotUrl);
     embeds.push(embed);
   }
@@ -99,11 +136,11 @@ export async function initLeaderboardMessages(client: Client): Promise<void> {
       if (msg) {
         await msg.edit({ embeds });
         messageIdCache.set(lb.channelId, msg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited message (${embeds.length} embeds)`);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited (${embeds.length} embeds)`);
       } else {
         const newMsg = await channel.send({ embeds });
         messageIdCache.set(lb.channelId, newMsg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created message (${embeds.length} embeds)`);
+        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created (${embeds.length} embeds)`);
       }
     } catch (error) {
       logger.error(`Failed to init leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
@@ -125,11 +162,11 @@ export async function refreshLeaderboard(_guildId?: string): Promise<void> {
 
       if (msg) {
         await msg.edit({ embeds });
-        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK (${embeds.length} embeds)`);
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK`);
       } else {
         const newMsg = await channel.send({ embeds });
         messageIdCache.set(lb.channelId, newMsg.id);
-        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} created new message (${embeds.length} embeds)`);
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} created new`);
       }
     } catch (error) {
       logger.error(`REFRESH FAILED: Leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
