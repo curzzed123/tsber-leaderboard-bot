@@ -5,8 +5,6 @@ import { logger } from '../utils/logger.js';
 import { getStatusText } from '../utils/formatting.js';
 import { fetchRobloxHeadshot, isHeadshotExpired } from './rover.js';
 
-const GIF_URL = 'https://cdn.discordapp.com/attachments/1409616969770205296/1466903491795488810/asa_3_1.gif?ex=6a2dc756&is=6a2c75d6&hm=94ffb671b92a4fef04c6606613ae41c7e7131b6912cdd8cb714dbf268814684e&';
-
 const LEADERBOARDS = [
   { channelId: '1509210175406604328', minRank: 1, maxRank: 10 },
   { channelId: '1509210720011554987', minRank: 11, maxRank: 20 },
@@ -63,8 +61,7 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
         name: player ? fieldName(player) : vacantFieldName(rank),
         value: player ? fieldValue(player) : vacantFieldValue(),
         inline: false,
-      })
-      .setImage(GIF_URL);
+      });
 
     // Set thumbnail to THIS player's headshot (not just the first one)
     if (player?.robloxHeadshotUrl) {
