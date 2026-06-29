@@ -101,13 +101,11 @@ export async function execute(client: Client): Promise<void> {
       logger.error(`Failed to init leaderboards:`, error);
     }
 
-    // Initialize ticket panel
-    if (guildConfig.ticketsChannelId) {
-      try {
-        await setupTicketPanel(client, guildId);
-      } catch (error) {
-        logger.error(`Failed to init ticket panel for guild ${guildId}:`, error);
-      }
+    // Initialize ticket panel — always runs, hardcoded channel
+    try {
+      await setupTicketPanel(client, guildId);
+    } catch (error) {
+      logger.error(`Failed to init ticket panel:`, error);
     }
   }
 

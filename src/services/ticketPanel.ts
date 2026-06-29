@@ -3,22 +3,13 @@ import { getGuildConfig } from '../database/models/GuildConfig.js';
 import { ButtonCustomId } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
-/**
- * Send or update the persistent ticket panel message with [Create] and [Challenge] buttons.
- * The message ID is stored in GuildConfig for future reference.
- * Buttons are persistent — they work across bot restarts.
- */
-export async function setupTicketPanel(client: Client, guildId: string): Promise<void> {
-  const guildConfig = await getGuildConfig(guildId);
+// Hardcoded — always works
+const TICKETS_CHANNEL_ID = '1509211671464513547';
 
-  if (!guildConfig.ticketsChannelId) {
-    logger.warn(`No tickets channel ID set for guild ${guildId}`);
-    return;
-  }
-
-  const channel = await client.channels.fetch(guildConfig.ticketsChannelId);
+export async function setupTicketPanel(client: Client, _guildId: string): Promise<void> {
+  const channel = await client.channels.fetch(TICKETS_CHANNEL_ID) as TextChannel;
   if (!channel || !(channel instanceof TextChannel)) {
-    logger.error(`Tickets channel ${guildConfig.ticketsChannelId} not found or not a text channel`);
+    logger.error(`Tickets channel ${TICKETS_CHANNEL_ID} not found or not a text channel`);
     return;
   }
 
@@ -47,20 +38,15 @@ export async function setupTicketPanel(client: Client, guildId: string): Promise
       .setEmoji('⚔️'),
   );
 
-  // If we already have a message ID, try to edit it; otherwise send new
-  if (guildConfig.ticketsEmbedMessageId) {
-    try {
-      const message = await channel.messages.fetch(guildConfig.ticketsEmbedMessageId);
-      await message.edit({ embeds: [embed], components: [row] });
-      logger.info('Ticket panel message updated');
-      return;
-    } catch {
-      logger.warn('Existing ticket panel message not found, creating new one');
-    }
-  }
+  // Try to find existing bot message
+  const messages = await channel.messages.fetch({ limit: 20 });
+  const botMsg = messages.find((m) => m.author.id === client.user!.id && m.embeds.length > 0);
 
-  const message = await channel.send({ embeds: [embed], components: [row] });
-  guildConfig.ticketsEmbedMessageId = message.id;
-  await guildConfig.save();
-  logger.info(`Ticket panel message created (ID: ${message.id})`);
+  if (botMsg) {
+    await botMsg.edit({ embeds: [embed], components: [row] });
+    logger.info(`Ticket panel updated (message ${botMsg.id})`);
+  } else {
+    const message = await channel.send({ embeds: [embed], components: [row] });
+    logger.info(`Ticket panel created (message ${message.id})`);
+  }
 }
