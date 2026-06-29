@@ -7,6 +7,15 @@ import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
 
+// Build rank choices 1-30 + Unranked
+const rankChoices = [
+  { name: 'Unranked (Stage 0)', value: 0 },
+  ...Array.from({ length: 30 }, (_, i) => ({
+    name: `Rank #${i + 1}`,
+    value: i + 1,
+  })),
+];
+
 export const setrank: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('setrank')
@@ -15,11 +24,11 @@ export const setrank: SlashCommand = {
       option.setName('user').setDescription('The player to set rank for').setRequired(true),
     )
     .addIntegerOption((option) =>
-      option.setName('rank')
-        .setDescription('Rank position 1-30, or 0 for Unranked')
+      option
+        .setName('rank')
+        .setDescription('Select a rank position')
         .setRequired(true)
-        .setMinValue(0)
-        .setMaxValue(30),
+        .addChoices(...rankChoices),
     ) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -52,8 +61,7 @@ export const setrank: SlashCommand = {
     await player.save();
     logger.info(`DB UPDATED: ${player.robloxUsername} rank set to ${player.rank} (was ${oldRank})`);
 
-    // Refresh leaderboard immediately
-    logger.info('Refreshing leaderboard now...');
+    // Refresh leaderboard immediately — edits existing message, no duplicates
     await refreshLeaderboard(guildId);
     logger.info('Leaderboard refresh complete.');
 
