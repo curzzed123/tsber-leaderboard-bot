@@ -110,6 +110,63 @@ async function sweep(): Promise<void> {
     await player.save();
   }
 
+  // 6.5 Send 2-hour reminder DMs to both players before fight time
+  const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  const remindersToSend = await Ticket.find({
+    status: { $in: [TicketStatus.OPEN, TicketStatus.FROZEN] },
+    fightTime: { $lte: twoHoursFromNow, $gt: now },
+    reminderSent: false,
+    claimedBy: { $ne: null },
+  });
+
+  for (const ticket of remindersToSend) {
+    try {
+      if (!clientRef) continue;
+
+      const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
+      const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
+
+      const chName = challenger?.robloxUsername ?? 'Challenger';
+      const opName = opponent?.robloxUsername ?? 'Opponent';
+
+      const { EmbedBuilder } = await import('discord.js');
+      const reminderEmbed = new EmbedBuilder()
+        .setTitle('Fight Reminder — 2 Hours Left')
+        .setColor(0xFEE75C)
+        .setDescription(
+          `Your fight is in **2 hours**.\n\n` +
+          `**Match:** ${chName} vs ${opName}\n` +
+          `**Fight Time:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:F>\n` +
+          `**Time until fight:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:R>\n` +
+          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n\n` +
+          `Be ready and available at the scheduled time.`,
+        )
+        .setTimestamp();
+
+      // DM challenger
+      try {
+        const chUser = await clientRef.users.fetch(ticket.challengerDiscordId);
+        const chDM = await chUser.createDM();
+        if ('send' in chDM) await (chDM as any).send({ embeds: [reminderEmbed] });
+      } catch {}
+
+      // DM opponent
+      try {
+        const opUser = await clientRef.users.fetch(ticket.opponentDiscordId);
+        const opDM = await opUser.createDM();
+        if ('send' in opDM) await (opDM as any).send({ embeds: [reminderEmbed] });
+      } catch {}
+
+      ticket.reminderSent = true;
+      await ticket.save();
+
+      logger.info(`2-hour reminder sent for ticket ${ticket._id} — ${chName} vs ${opName}`);
+      await discordLog('Fight Reminder Sent', `**Match:** ${chName} vs ${opName}\n**Fight Time:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:F>\nBoth players have been DM'd.`, 'info');
+    } catch (error) {
+      logger.error(`Failed to send reminder for ticket ${ticket._id}:`, error);
+    }
+  }
+
   // 7. Auto-open scheduled fights — when fightTime has arrived
   const fightsToOpen = await Ticket.find({
     status: { $in: [TicketStatus.OPEN, TicketStatus.FROZEN] },

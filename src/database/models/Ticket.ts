@@ -26,6 +26,7 @@ export interface ITicket extends Document {
   claimedBy: string | null;
   firstChannelClosed: boolean;
   fightChannelId: string | null;
+  reminderSent: boolean;
   updatedAt: Date;
 }
 
@@ -58,6 +59,7 @@ const ticketSchema = new Schema<ITicket>(
     claimedBy: { type: String, default: null },
     firstChannelClosed: { type: Boolean, default: false },
     fightChannelId: { type: String, default: null },
+    reminderSent: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
