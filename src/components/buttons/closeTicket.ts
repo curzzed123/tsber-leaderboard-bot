@@ -7,11 +7,17 @@ import { resolveMatch } from '../../services/rankShift.js';
 import { hasRefereePermission } from '../../utils/permissions.js';
 import { logger } from '../../utils/logger.js';
 import { discordLog } from '../../utils/discordLogger.js';
-import { formatRank } from '../../utils/formatting.js';
+import { discordTimestampFull } from '../../utils/formatting.js';
 
 /**
- * Handle the Close button click on a challenge ticket.
- * Instead of immediately closing, sends the referee a DM with winner selection buttons.
+ * Handle the Close button click.
+ *
+ * For challenge tickets:
+ * - If claimed with a fight time: delete channel, mark firstChannelClosed=true
+ *   The scheduler will re-open a new channel at the fight time + DM referee for winner.
+ * - If NOT claimed (no fight time): close as invalid, delete channel.
+ *
+ * For application tickets: just delete the channel.
  */
 export async function handleCloseTicketButton(interaction: ButtonInteraction): Promise<void> {
   if (!hasRefereePermission(interaction.member as any)) {
@@ -19,7 +25,6 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
     return;
   }
 
-  // Check if this is a challenge ticket
   const ticket = await Ticket.findOne({
     channelId: interaction.channelId,
     status: { $in: [TicketStatus.OPEN, TicketStatus.FROZEN] },
@@ -41,9 +46,59 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
     return;
   }
 
-  // Challenge ticket — DM the referee with winner selection buttons
+  // Challenge ticket
+  // If claimed with a fight time → close first channel, wait for fight time
+  if (ticket.claimedBy && ticket.fightTime && !ticket.firstChannelClosed) {
+    try {
+      await interaction.editReply({
+        content: `Ticket channel closed. The fight will open automatically at ${discordTimestampFull(ticket.fightTime)}.\nThe referee will be DM'd for the winner at that time.`,
+      });
+
+      ticket.firstChannelClosed = true;
+      await ticket.save();
+
+      await discordLog('Ticket Closed — Waiting for Fight Time',
+        `**Fight Time:** ${discordTimestampFull(ticket.fightTime)}\n**Type:** ${ticket.fightType}\n**Referee:** <@${ticket.claimedBy}>\n**Challenger:** <@${ticket.challengerDiscordId}>\n**Opponent:** <@${ticket.opponentDiscordId}>`,
+        'info');
+
+      // Delete the channel
+      setTimeout(async () => {
+        try { await interaction.channel?.delete(); } catch {}
+      }, 3000);
+
+      logger.info(`Ticket ${ticket._id} first channel closed — waiting for fight time ${ticket.fightTime}`);
+    } catch (error) {
+      logger.error('Error closing ticket for fight time:', error);
+    }
+    return;
+  }
+
+  // If NOT claimed or already re-opened → DM referee for winner selection
+  if (ticket.claimedBy && ticket.firstChannelClosed) {
+    // Already re-opened fight channel — DM referee for winner
+    await sendWinnerDM(interaction, ticket);
+    return;
+  }
+
+  // Not claimed at all — close as invalid
   try {
-    // Get player names for the DM
+    await resolveMatch(interaction.client, ticket, 'INVALID' as MatchOutcome, interaction.user.id, 'Closed via Close button (not claimed)');
+    await interaction.editReply({ content: 'Ticket closed as invalid. Channel will be deleted shortly.' });
+
+    setTimeout(async () => {
+      try { await interaction.channel?.delete(); } catch {}
+    }, 3000);
+  } catch (error) {
+    logger.error('Error closing unclaimed ticket:', error);
+    await interaction.editReply({ content: 'Failed to close ticket.' });
+  }
+}
+
+/**
+ * Send a DM to the referee with winner selection buttons.
+ */
+async function sendWinnerDM(interaction: ButtonInteraction, ticket: any): Promise<void> {
+  try {
     const { Player } = await import('../../database/models/Player.js');
     const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
     const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
@@ -60,35 +115,31 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
         `**Challenger:** ${chName} (${chRank})\n` +
         `**Opponent:** ${opName} (${opRank})\n\n` +
         `Select the winner of this match.\n` +
-        `If the winner is ranked lower (challenger), ranks will swap and the loser drops 1 position.\n` +
-        `If the winner is ranked higher (opponent), ranks stay the same. Winner gets +1 win, loser gets +1 loss.`,
+        `If the challenger (lower rank) wins, ranks swap.\n` +
+        `If the opponent (higher rank) wins, ranks stay. Winner gets +1W, loser gets +1L.`,
       )
       .setTimestamp();
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`${ButtonCustomId.DM_WIN_CHALLENGER}:${ticket._id}`).setLabel(`${chName} (Challenger) Wins`).setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(`${ButtonCustomId.DM_WIN_OPPONENT}:${ticket._id}`).setLabel(`${opName} (Opponent) Wins`).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`${ButtonCustomId.DM_WIN_CHALLENGER}:${ticket._id}`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`${ButtonCustomId.DM_WIN_OPPONENT}:${ticket._id}`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId(`${ButtonCustomId.DM_INVALID}:${ticket._id}`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
     );
 
-    // Send DM to the referee
     const dmChannel = await interaction.user.createDM();
     if (dmChannel && 'send' in dmChannel) {
       await (dmChannel as any).send({ embeds: [dmEmbed], components: [row] });
-    } else {
-      throw new Error('Could not open DM channel');
     }
 
     await interaction.editReply({ content: 'Check your DMs to select the match winner.' });
 
-    // Also announce in the ticket channel
     const ticketChannel = interaction.channel;
     if (ticketChannel && 'send' in ticketChannel) {
       await (ticketChannel as any).send({
         embeds: [new EmbedBuilder()
           .setTitle('Match Result Pending')
           .setColor(0xFEE75C)
-          .setDescription(`The referee (<@${interaction.user.id}>) has been asked to select the winner.\nThe ticket will close once the result is confirmed.`)
+          .setDescription(`The referee (<@${interaction.user.id}>) has been asked to select the winner.`)
           .setTimestamp()],
       });
     }
@@ -96,7 +147,7 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
     logger.info(`DM sent to referee ${interaction.user.id} for ticket ${ticket._id}`);
   } catch (error) {
     logger.error('Failed to send DM to referee:', error);
-    await interaction.editReply({ content: 'Failed to send DM. Make sure your DMs are open. You can also use /close-ticket.' });
+    await interaction.editReply({ content: 'Failed to send DM. Make sure your DMs are open.' });
   }
 }
 
@@ -104,7 +155,6 @@ export async function handleCloseTicketButton(interaction: ButtonInteraction): P
  * Handle the winner selection buttons from the DM.
  */
 export async function handleDMWinnerButton(interaction: ButtonInteraction): Promise<void> {
-  // This is a DM interaction — customId format is "dm_win_challenger:TICKET_ID"
   const [action, ticketId] = interaction.customId.split(':');
 
   if (!ticketId) {
@@ -135,10 +185,8 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
   await interaction.deferReply();
 
   try {
-    // Resolve the match
     await resolveMatch(ticket, outcome, interaction.user.id);
 
-    // Get result details for the DM confirmation
     const { Player } = await import('../../database/models/Player.js');
     const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
     const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
@@ -156,9 +204,9 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
 
     await interaction.editReply({ embeds: [resultEmbed] });
 
-    // Close the ticket channel
-    const client = interaction.client;
-    const channel = await client.channels.fetch(ticket.channelId).catch(() => null);
+    // Close the fight channel (if it exists)
+    const channelId = ticket.fightChannelId || ticket.channelId;
+    const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
     if (channel && channel.isTextBased()) {
       await (channel as any).send({
         embeds: [new EmbedBuilder()
@@ -179,7 +227,6 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
       }, 5000);
     }
 
-    // Log to log channel
     const winnerName = outcome === 'WIN_CHALLENGER' ? challenger?.robloxUsername : opponent?.robloxUsername;
     const loserName = outcome === 'WIN_CHALLENGER' ? opponent?.robloxUsername : challenger?.robloxUsername;
     await discordLog('Match Resolved',

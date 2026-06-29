@@ -121,8 +121,6 @@ async function sweep(): Promise<void> {
   for (const ticket of fightsToOpen) {
     try {
       if (!clientRef) continue;
-      const channel = await clientRef.channels.fetch(ticket.channelId);
-      if (!channel || !channel.isTextBased()) continue;
 
       const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
       const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
@@ -132,7 +130,47 @@ async function sweep(): Promise<void> {
       const chRank = challenger?.rank ? `#${challenger.rank}` : 'Unranked';
       const opRank = opponent?.rank ? `#${opponent.rank}` : 'Unranked';
 
-      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = await import('discord.js');
+
+      let channel;
+
+      if (ticket.firstChannelClosed && !ticket.fightChannelId) {
+        // First channel was deleted — create a NEW channel for the fight
+        const guild = clientRef.guilds.cache.get(ticket.guildId);
+        if (!guild) continue;
+
+        const sanitize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+        const channelName = `fight-${sanitize(chName)}-vs-${sanitize(opName)}`;
+
+        const overwrites: any[] = [
+          { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: ticket.challengerDiscordId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+          { id: ticket.opponentDiscordId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+          { id: '1520869356903600369', allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages] },
+          { id: clientRef.user!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] },
+        ];
+
+        channel = await guild.channels.create({
+          name: channelName,
+          type: ChannelType.GuildText,
+          parent: '1521267547150749879',
+          permissionOverwrites: overwrites,
+          topic: `Fight: ${chName} vs ${opName} — ${ticket.fightType}`,
+        });
+
+        ticket.fightChannelId = channel.id;
+        await ticket.save();
+        logger.info(`Fight channel created for ticket ${ticket._id}: ${channel.id}`);
+      } else if (ticket.fightChannelId) {
+        // Fight channel already exists
+        channel = await clientRef.channels.fetch(ticket.fightChannelId).catch(() => null);
+        if (!channel || !channel.isTextBased()) continue;
+      } else {
+        // First channel still exists
+        channel = await clientRef.channels.fetch(ticket.channelId);
+        if (!channel || !channel.isTextBased()) continue;
+      }
+
       const fightEmbed = new EmbedBuilder()
         .setTitle('Fight Starting Now')
         .setColor(0x57F287)
@@ -144,9 +182,15 @@ async function sweep(): Promise<void> {
         )
         .setTimestamp();
 
+      // Add Close button so referee can close after fight
+      const closeButton = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('btn_close_ticket').setLabel('Close').setStyle(ButtonStyle.Danger),
+      ) as any;
+
       await (channel as any).send({
         content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${'1520869356903600369'}> The fight is starting now!`,
         embeds: [fightEmbed],
+        components: [closeButton],
       });
 
       ticket.fightOpened = true;
