@@ -88,37 +88,19 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
  * Find the bot's leaderboard message — checks cache first, then searches channel.
  */
 async function findMessage(channel: TextChannel, channelId: string): Promise<Message | null> {
-  // Check in-memory cache
+  // Check in-memory cache first (fastest)
   const cachedId = messageIdCache.get(channelId);
   if (cachedId) {
     try {
       return await channel.messages.fetch(cachedId);
-    } catch { /* stale */ }
+    } catch { /* stale, fall through */ }
   }
 
-  // Check DB
-  const guildConfig = await getGuildConfig(GUILD_ID);
-  const lb = guildConfig.leaderboards.find((l) => l.channelId === channelId);
-  if (lb?.messageId) {
-    try {
-      const msg = await channel.messages.fetch(lb.messageId);
-      if (msg && msg.author.id === channel.client.user!.id) {
-        messageIdCache.set(channelId, lb.messageId);
-        return msg;
-      }
-    } catch { /* stale */ }
-  }
-
-  // Search recent messages
+  // Search recent messages in channel (no DB call)
   const messages = await channel.messages.fetch({ limit: 20 });
   const botMsg = messages.find((m) => m.author.id === channel.client.user!.id && m.embeds.length > 0);
   if (botMsg) {
     messageIdCache.set(channelId, botMsg.id);
-    // Save to DB
-    if (lb) {
-      lb.messageId = botMsg.id;
-      await guildConfig.save();
-    }
     return botMsg;
   }
 
