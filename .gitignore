@@ -1,28 +1,6 @@
-# Dependencies
 node_modules/
 dist/
-
-# Secrets
 .env
-
-# Logs
 *.log
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Codely CLI internal files
-.codely/
-.codely-cli/
-
-# Old scripts (not part of the bot)
-fix-*.cjs
-test-*.ts
-
-# Roblox bridge (separate project)
-roblox-bridge/
-
-# Python cache
-__pycache__/
-*.pyc
