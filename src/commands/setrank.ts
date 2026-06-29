@@ -140,9 +140,13 @@ export const setrank: SlashCommand = {
       )],
     });
 
-    // Refresh leaderboard in the background — don't block the reply
-    refreshLeaderboard(guildId).catch((e) =>
-      logger.error('Background leaderboard refresh failed:', e),
-    );
+    // Refresh leaderboard — log any errors so they show up in Railway
+    try {
+      logger.info('Starting leaderboard refresh...');
+      await refreshLeaderboard(guildId);
+      logger.info('Leaderboard refresh complete.');
+    } catch (error) {
+      logger.error('Leaderboard refresh FAILED:', error);
+    }
   },
 };
