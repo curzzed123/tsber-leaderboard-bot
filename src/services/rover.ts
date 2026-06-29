@@ -1,81 +1,84 @@
-import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
-export interface RoverVerification {
+export interface RobloxUser {
   robloxId: number;
   robloxUsername: string;
 }
 
 interface CacheEntry {
-  data: RoverVerification | null;
+  data: RobloxUser | null;
   fetchedAt: number;
 }
 
-const verificationCache = new Map<string, CacheEntry>();
+const userCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
- * Verify a Discord user's Roblox account via the Rover API.
- * Returns null if the user is not verified.
+ * Search for a Roblox user by username directly via Roblox API.
+ * No Rover or Discord verification needed — just type the username.
  */
-export async function verifyUser(discordId: string): Promise<RoverVerification | null> {
+export async function findRobloxUser(username: string): Promise<RobloxUser | null> {
   // Check cache
-  const cached = verificationCache.get(discordId);
-  if (cached && Date.now() - cached.fetchedAt < config.rover.cacheTtlMs) {
+  const cached = userCache.get(username.toLowerCase());
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.data;
   }
 
   try {
-    const response = await fetch(
-      `${config.rover.apiUrl}/users/discord/${discordId}`,
-    );
+    // Step 1: Search by username via Roblox API
+    const searchRes = await fetch('https://users.roproxy.com/v1/usernames/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usernames: [username],
+        excludeBannedUsers: false,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        // User not verified with Rover
-        verificationCache.set(discordId, { data: null, fetchedAt: Date.now() });
-        return null;
-      }
-      logger.error(`Rover API returned ${response.status} for Discord ID ${discordId}`);
+    if (!searchRes.ok) {
+      logger.error(`Roblox username search failed: ${searchRes.status}`);
       return null;
     }
 
-    const data = await response.json() as {
-      robloxId?: number;
-      robloxUsername?: string;
+    const searchData = await searchRes.json() as {
+      data?: Array<{ id: number; name: string; displayName: string }>;
     };
 
-    if (!data.robloxId || !data.robloxUsername) {
-      verificationCache.set(discordId, { data: null, fetchedAt: Date.now() });
+    if (!searchData.data || searchData.data.length === 0) {
+      // User not found
+      userCache.set(username.toLowerCase(), { data: null, fetchedAt: Date.now() });
       return null;
     }
 
-    const result: RoverVerification = {
-      robloxId: data.robloxId,
-      robloxUsername: data.robloxUsername,
+    const user = searchData.data[0];
+    const result: RobloxUser = {
+      robloxId: user.id,
+      robloxUsername: user.name,
     };
 
-    verificationCache.set(discordId, { data: result, fetchedAt: Date.now() });
+    userCache.set(username.toLowerCase(), { data: result, fetchedAt: Date.now() });
     return result;
   } catch (error) {
-    logger.error(`Rover verification failed for Discord ID ${discordId}:`, error);
+    logger.error(`Failed to find Roblox user "${username}":`, error);
     return null;
   }
 }
 
 /**
  * Fetch a Roblox user's avatar headshot URL.
- * Uses the RoProxy thumbnail API (unofficial but reliable).
- * The URL expires after ~1 week, so store the expiry date.
+ * Uses the RoProxy thumbnail API.
  */
 export async function fetchRobloxHeadshot(robloxId: number): Promise<{ url: string; expiresAt: Date }> {
   try {
     const response = await fetch(
-      `${config.roblox.thumbnailApiUrl}?userIds=${robloxId}&size=150x150&format=Png&isCircular=false`,
+      `https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=false`,
+      { signal: AbortSignal.timeout(10000) },
     );
 
     if (!response.ok) {
-      logger.error(`Roblox thumbnail API returned ${response.status} for Roblox ID ${robloxId}`);
-      return { url: '', expiresAt: new Date(Date.now() + 60 * 60 * 1000) }; // retry in 1h
+      logger.error(`Roblox thumbnail API returned ${response.status} for ID ${robloxId}`);
+      return { url: '', expiresAt: new Date(Date.now() + 60 * 60 * 1000) };
     }
 
     const data = await response.json() as {
@@ -83,8 +86,7 @@ export async function fetchRobloxHeadshot(robloxId: number): Promise<{ url: stri
     };
 
     const url = data.data?.[0]?.imageUrl ?? '';
-    // Thumbnails expire in ~1 week; set expiry to 6 days to be safe
-    const expiresAt = new Date(Date.now() + config.rover.thumbnailRefreshMs);
+    const expiresAt = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
 
     return { url, expiresAt };
   } catch (error) {

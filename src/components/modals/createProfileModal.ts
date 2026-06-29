@@ -1,7 +1,7 @@
 import type { ModalSubmitInteraction } from 'discord.js';
 import { Player } from '../../database/models/Player.js';
 import { Region, PlayerStatus, ModalInputCustomId } from '../../types/index.js';
-import { verifyUser, fetchRobloxHeadshot } from '../../services/rover.js';
+import { findRobloxUser, fetchRobloxHeadshot } from '../../services/rover.js';
 import { createSuccessEmbed, createErrorEmbed } from '../../utils/embeds.js';
 import { refreshLeaderboard } from '../../services/leaderboard.js';
 import { logger } from '../../utils/logger.js';
@@ -41,54 +41,41 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
 
   await interaction.deferReply({ ephemeral: true });
 
-  // Verify with Rover API
-  const roverData = await verifyUser(interaction.user.id);
+  // Search Roblox directly by username — no Rover needed
+  const robloxData = await findRobloxUser(robloxUsername);
 
-  if (!roverData) {
+  if (!robloxData) {
     await interaction.editReply({
       embeds: [createErrorEmbed(
-        'Verification Failed',
-        'Could not verify your Roblox account via Rover. Please ensure you have verified your Discord account at **https://rover.link** and try again.',
+        'User Not Found',
+        `No Roblox account found with the username **${robloxUsername}**. Check the spelling and try again.`,
       )],
     });
     return;
   }
 
-  // Verify the Roblox username matches
-  if (roverData.robloxUsername.toLowerCase() !== robloxUsername.toLowerCase()) {
-    await interaction.editReply({
-      embeds: [createErrorEmbed(
-        'Username Mismatch',
-        `The Roblox username you entered (**${robloxUsername}**) does not match the one linked to your Discord via Rover (**${roverData.robloxUsername}**). Please use your verified Roblox username.`,
-      )],
-    });
-    return;
-  }
+  // Fetch Roblox headshot automatically
+  const { url: headshotUrl, expiresAt: headshotExpiresAt } = await fetchRobloxHeadshot(robloxData.robloxId);
 
   // Get optional custom headshot URL
   let customHeadshotUrl: string | null = null;
   try {
     customHeadshotUrl = interaction.fields.getTextInputValue(ModalInputCustomId.CUSTOM_HEADSHOT_URL)?.trim() || null;
   } catch {
-    // Field might not exist if modal was opened before bot update
     customHeadshotUrl = null;
   }
 
-  // Fetch Roblox headshot (used as fallback if no custom URL)
-  const { url: robloxHeadshotUrl, expiresAt: robloxHeadshotExpiresAt } = await fetchRobloxHeadshot(roverData.robloxId);
-
-  // Determine which headshot to use
-  const finalHeadshotUrl = customHeadshotUrl || robloxHeadshotUrl;
+  const finalHeadshotUrl = customHeadshotUrl || headshotUrl;
   const finalExpiresAt = customHeadshotUrl
-    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Custom URLs: refresh in 30 days
-    : robloxHeadshotExpiresAt;
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    : headshotExpiresAt;
 
   // Create the player profile
   const player = await Player.create({
     guildId: interaction.guildId,
     discordId: interaction.user.id,
-    robloxId: roverData.robloxId,
-    robloxUsername: roverData.robloxUsername,
+    robloxId: robloxData.robloxId,
+    robloxUsername: robloxData.robloxUsername,
     robloxHeadshotUrl: finalHeadshotUrl,
     robloxHeadshotExpiresAt: finalExpiresAt,
     customHeadshotUrl,
@@ -106,6 +93,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     loa: { approved: false, until: null, reason: '' },
   });
 
+  // Refresh leaderboard immediately — edits existing message
   await refreshLeaderboard(interaction.guildId);
 
   const embed = createSuccessEmbed(
@@ -121,5 +109,5 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
   }
 
   await interaction.editReply({ embeds: [embed] });
-  logger.info(`Profile created for ${interaction.user.id} — Roblox: ${roverData.robloxUsername}, custom avatar: ${!!customHeadshotUrl}`);
+  logger.info(`Profile created for ${interaction.user.id} — Roblox: ${robloxData.robloxUsername} (ID: ${robloxData.robloxId})`);
 }
