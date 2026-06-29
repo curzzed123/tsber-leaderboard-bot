@@ -1,4 +1,4 @@
-import type { Interaction, ChatInputCommandInteraction, ButtonInteraction, ModalSubmitInteraction, StringSelectMenuInteraction } from 'discord.js';
+import type { Interaction, ChatInputCommandInteraction, ButtonInteraction, ModalSubmitInteraction, StringSelectMenuInteraction, AutocompleteInteraction } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { commands } from '../commands/index.js';
 import { handleCreateProfileButton } from '../components/buttons/createProfile.js';
@@ -9,7 +9,9 @@ import { ButtonCustomId, ModalCustomId, SelectCustomId } from '../types/index.js
 
 export async function execute(interaction: Interaction): Promise<void> {
   try {
-    if (interaction.isChatInputCommand()) {
+    if (interaction.isAutocomplete()) {
+      await handleAutocomplete(interaction);
+    } else if (interaction.isChatInputCommand()) {
       await handleSlashCommand(interaction);
     } else if (interaction.isButton()) {
       await handleButton(interaction);
@@ -21,9 +23,8 @@ export async function execute(interaction: Interaction): Promise<void> {
   } catch (error) {
     logger.error(`Error handling interaction (${interaction.type}):`, error);
 
-    const errorMessage = 'An error occurred while processing your request.';
-
     if (interaction.isRepliable()) {
+      const errorMessage = 'An error occurred while processing your request.';
       if (interaction.deferred) {
         await interaction.editReply({ content: errorMessage }).catch(() => {});
       } else {
@@ -31,6 +32,14 @@ export async function execute(interaction: Interaction): Promise<void> {
       }
     }
   }
+}
+
+async function handleAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  const command = commands.find((cmd) => cmd.data.name === interaction.commandName);
+  if (!command) return;
+
+  // The execute function handles autocomplete when interaction.isAutocomplete() is true
+  await command.execute(interaction as any);
 }
 
 async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {

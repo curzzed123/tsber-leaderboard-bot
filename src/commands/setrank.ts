@@ -1,20 +1,11 @@
 import { SlashCommandBuilder } from 'discord.js';
 import type { SlashCommand } from './index.js';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 import { Player } from '../database/models/Player.js';
 import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
-
-// Build rank choices 1-30 + Unranked
-const rankChoices = [
-  { name: 'Unranked (Stage 0)', value: 0 },
-  ...Array.from({ length: 30 }, (_, i) => ({
-    name: `Rank #${i + 1}`,
-    value: i + 1,
-  })),
-];
 
 export const setrank: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -26,25 +17,47 @@ export const setrank: SlashCommand = {
     .addIntegerOption((option) =>
       option
         .setName('rank')
-        .setDescription('Select a rank position')
+        .setDescription('Rank position 1-30, or 0 for Unranked')
         .setRequired(true)
-        .addChoices(...rankChoices),
+        .setMinValue(0)
+        .setMaxValue(30)
+        .setAutocomplete(true),
     ) as SlashCommandBuilder,
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!hasStaffPermission(interaction.member as any)) {
-      await interaction.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only staff (Administrator) can use this command.')], ephemeral: true });
+  async execute(interaction: ChatInputCommandInteraction | AutocompleteInteraction): Promise<void> {
+    // Handle autocomplete — shows rank 0-30 as user types
+    if (interaction.isAutocomplete()) {
+      const input = interaction.options.getFocused();
+      const choices = [
+        { name: 'Unranked (Stage 0)', value: 0 },
+        ...Array.from({ length: 30 }, (_, i) => ({
+          name: `Rank #${i + 1}`,
+          value: i + 1,
+        })),
+      ];
+      const filtered = choices.filter((c) =>
+        c.name.toLowerCase().includes(input.toLowerCase()),
+      ).slice(0, 25);
+      await interaction.respond(filtered);
       return;
     }
 
-    const targetUser = interaction.options.getUser('user', true);
-    const rankValue = interaction.options.getInteger('rank', true);
+    // Normal command execution
+    const cmd = interaction as ChatInputCommandInteraction;
 
-    const guildId = interaction.guildId!;
+    if (!hasStaffPermission(cmd.member as any)) {
+      await cmd.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only staff (Administrator) can use this command.')], ephemeral: true });
+      return;
+    }
+
+    const targetUser = cmd.options.getUser('user', true);
+    const rankValue = cmd.options.getInteger('rank', true);
+
+    const guildId = cmd.guildId!;
 
     const player = await Player.findOne({ guildId, discordId: targetUser.id });
     if (!player) {
-      await interaction.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered. They must click [Create] in the challenge-tickets channel first.`)], ephemeral: true });
+      await cmd.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered. They must click [Create] in the challenge-tickets channel first.`)], ephemeral: true });
       return;
     }
 
@@ -70,6 +83,6 @@ export const setrank: SlashCommand = {
       `**${player.robloxUsername}**'s rank has been updated.\n\n**Previous:** ${oldRank ? `#${oldRank}` : 'Unranked'}\n**New:** ${player.rank ? `#${player.rank}` : 'Unranked'}\n\n*Leaderboard has been refreshed.*`,
     );
 
-    await interaction.reply({ embeds: [embed] });
+    await cmd.reply({ embeds: [embed] });
   },
 };
