@@ -12,11 +12,16 @@ export async function execute(client: Client): Promise<void> {
   // Store client globally for leaderboard refresh
   (globalThis as any).client = client;
 
-  // Register slash commands
+  // Register slash commands — PUT replaces all existing commands (clears old ones)
   try {
     const rest = new REST({ version: '10' }).setToken(config.token);
     const commandData = commands.map((cmd) => cmd.data.toJSON());
 
+    // Clear global commands first (in case old ones are cached)
+    await rest.put(Routes.applicationCommands(client.user!.id), { body: [] });
+    logger.info('Cleared global slash commands');
+
+    // Register guild commands (instant update)
     if (config.guildId) {
       await rest.put(
         Routes.applicationGuildCommands(client.user!.id, config.guildId),

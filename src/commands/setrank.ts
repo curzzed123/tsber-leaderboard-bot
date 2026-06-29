@@ -10,14 +10,14 @@ import { refreshLeaderboard } from '../services/leaderboard.js';
 export const setrank: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('setrank')
-    .setDescription('Set a player\'s rank position')
+    .setDescription('Place or update a player on the leaderboard')
     .addUserOption((option) =>
-      option.setName('user').setDescription('The player to set rank for').setRequired(true),
+      option.setName('user').setDescription('The player').setRequired(true),
     )
     .addIntegerOption((option) =>
       option
         .setName('rank')
-        .setDescription('Rank position 1-30, or 0 for Unranked')
+        .setDescription('Leaderboard spot 1-30, or 0 for unranked')
         .setRequired(true)
         .setMinValue(0)
         .setMaxValue(30)
@@ -25,24 +25,20 @@ export const setrank: SlashCommand = {
     ) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction | AutocompleteInteraction): Promise<void> {
-    // Handle autocomplete — shows rank 0-30 as user types
+    // Autocomplete — show rank options as user types
     if (interaction.isAutocomplete()) {
-      const input = interaction.options.getFocused();
+      const focused = interaction.options.getFocused();
       const choices = [
         { name: 'Unranked (Stage 0)', value: 0 },
-        ...Array.from({ length: 30 }, (_, i) => ({
-          name: `Rank #${i + 1}`,
-          value: i + 1,
-        })),
+        ...Array.from({ length: 30 }, (_, i) => ({ name: `Rank #${i + 1}`, value: i + 1 })),
       ];
-      const filtered = choices.filter((c) =>
-        c.name.toLowerCase().includes(input.toLowerCase()),
-      ).slice(0, 25);
+      const filtered = focused === ''
+        ? choices.slice(0, 25)
+        : choices.filter((c) => c.name.toLowerCase().includes(focused.toLowerCase())).slice(0, 25);
       await interaction.respond(filtered);
       return;
     }
 
-    // Normal command execution
     const cmd = interaction as ChatInputCommandInteraction;
 
     if (!hasStaffPermission(cmd.member as any)) {
@@ -57,7 +53,7 @@ export const setrank: SlashCommand = {
 
     const player = await Player.findOne({ guildId, discordId: targetUser.id });
     if (!player) {
-      await cmd.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered. They must click [Create] in the challenge-tickets channel first.`)], ephemeral: true });
+      await cmd.reply({ embeds: [createErrorEmbed('Player Not Found', `${targetUser.username} is not registered. They must click [Create] first.`)], ephemeral: true });
       return;
     }
 
@@ -74,15 +70,13 @@ export const setrank: SlashCommand = {
     await player.save();
     logger.info(`DB UPDATED: ${player.robloxUsername} rank set to ${player.rank} (was ${oldRank})`);
 
-    // Refresh leaderboard immediately — edits existing message, no duplicates
     await refreshLeaderboard(guildId);
-    logger.info('Leaderboard refresh complete.');
 
-    const embed = createSuccessEmbed(
-      'Rank Updated',
-      `**${player.robloxUsername}**'s rank has been updated.\n\n**Previous:** ${oldRank ? `#${oldRank}` : 'Unranked'}\n**New:** ${player.rank ? `#${player.rank}` : 'Unranked'}\n\n*Leaderboard has been refreshed.*`,
-    );
-
-    await cmd.reply({ embeds: [embed] });
+    await cmd.reply({
+      embeds: [createSuccessEmbed(
+        'Rank Updated',
+        `**${player.robloxUsername}** — ${oldRank ? `#${oldRank}` : 'Unranked'} → ${player.rank ? `#${player.rank}` : 'Unranked'}\n\n*Leaderboard updated.*`,
+      )],
+    });
   },
 };
