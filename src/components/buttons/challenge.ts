@@ -4,7 +4,6 @@ import { PlayerStatus } from '../../types/index.js';
 import { createErrorEmbed } from '../../utils/embeds.js';
 import { formatRank } from '../../utils/formatting.js';
 import { getEligibleOpponents } from '../../services/challengeValidation.js';
-import { discordLog } from '../../utils/discordLogger.js';
 import { StringSelectMenuBuilder, ActionRowBuilder } from 'discord.js';
 import { SelectCustomId } from '../../types/index.js';
 import type { IPlayer } from '../../database/models/Player.js';
@@ -15,30 +14,24 @@ export async function handleChallengeButton(interaction: ButtonInteraction): Pro
     return;
   }
 
-  // Find the challenger's profile
+  // Defer immediately to prevent 3-second timeout
+  await interaction.deferReply({ ephemeral: true });
+
   const challenger = await Player.findOne({
     guildId: interaction.guildId,
     discordId: interaction.user.id,
   });
 
   if (!challenger) {
-    await interaction.reply({
-      embeds: [createErrorEmbed('Profile Not Found', 'You must create a profile first. Click the **[Create]** button to register.')],
-      ephemeral: true,
-    });
+    await interaction.editReply({ embeds: [createErrorEmbed('Profile Not Found', 'You must create a profile first.')] });
     return;
   }
 
-  // Check if player is ranked
   if (challenger.rank === null) {
-    await interaction.reply({
-      embeds: [createErrorEmbed('Unranked', 'You must be assigned a rank before challenging. Ask staff to use `/setrank`.')],
-      ephemeral: true,
-    });
+    await interaction.editReply({ embeds: [createErrorEmbed('Unranked', 'You must be assigned a rank before challenging. Ask staff to use /setrank.')] });
     return;
   }
 
-  // Check if player is available to challenge
   if (challenger.status !== PlayerStatus.IDLE) {
     const statusMessages: Record<string, string> = {
       [PlayerStatus.CHALLENGING]: 'You are already challenging someone.',
@@ -46,31 +39,22 @@ export async function handleChallengeButton(interaction: ButtonInteraction): Pro
       [PlayerStatus.IMMUNE]: 'You have immunity and cannot challenge right now.',
       [PlayerStatus.COOLDOWN]: 'You are on cooldown and cannot challenge right now.',
     };
-    await interaction.reply({
-      embeds: [createErrorEmbed('Unavailable', statusMessages[challenger.status] ?? 'You are not available to challenge.')],
-      ephemeral: true,
-    });
+    await interaction.editReply({ embeds: [createErrorEmbed('Unavailable', statusMessages[challenger.status] ?? 'You are not available to challenge.')] });
     return;
   }
 
-  // Get all ranked players in the guild
   const allPlayers = await Player.find({
     guildId: interaction.guildId,
     rank: { $ne: null },
   }).sort({ rank: 1 });
 
-  // Get eligible opponents
   const eligibleOpponents = await getEligibleOpponents(challenger, allPlayers);
 
   if (eligibleOpponents.length === 0) {
-    await interaction.reply({
-      embeds: [createErrorEmbed('No Eligible Opponents', `No opponents are available for you to challenge at rank ${formatRank(challenger.rank)}. Check the leaderboard for available targets.`)],
-      ephemeral: true,
-    });
+    await interaction.editReply({ embeds: [createErrorEmbed('No Eligible Opponents', `No opponents are available for you to challenge at rank ${formatRank(challenger.rank)}.`)] });
     return;
   }
 
-  // Build the select menu
   const options = eligibleOpponents.slice(0, 25).map((opponent: IPlayer) => ({
     label: `#${opponent.rank} — ${opponent.robloxUsername}`,
     description: `${opponent.wins}W / ${opponent.losses}L | ${opponent.region}`,
@@ -84,9 +68,8 @@ export async function handleChallengeButton(interaction: ButtonInteraction): Pro
 
   const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: `**Select your opponent** — You are currently ${formatRank(challenger.rank)} (${challenger.wins}W / ${challenger.losses}L)`,
     components: [row],
-    ephemeral: true,
   });
 }
