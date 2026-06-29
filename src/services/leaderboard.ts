@@ -26,9 +26,10 @@ function vacantFieldName(rank: number): string {
 function fieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
   const profileLink = `https://www.roblox.com/users/${player.robloxId}/profile`;
+  const discordTag = player.discordUsername || 'unknown';
   return (
     `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
-    `<@${player.discordId}>\n` +
+    `| @${discordTag} |\n` +
     `ID: ${player.robloxId}\n` +
     `Region: ${player.region ?? '-'}\n` +
     `Stage: **${player.stage || '-'}**\n` +

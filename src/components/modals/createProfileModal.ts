@@ -81,6 +81,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
   const player = await Player.create({
     guildId: interaction.guildId,
     discordId: interaction.user.id,
+    discordUsername: interaction.user.username,
     robloxId: robloxData.robloxId,
     robloxUsername: robloxData.robloxUsername,
     robloxHeadshotUrl: finalHeadshotUrl,

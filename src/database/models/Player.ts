@@ -15,6 +15,7 @@ export interface LeaveOfAbsence {
 export interface IPlayer extends Document {
   guildId: string;
   discordId: string;
+  discordUsername: string;
   robloxId: number;
   robloxUsername: string;
   robloxHeadshotUrl: string;
@@ -57,6 +58,7 @@ const playerSchema = new Schema<IPlayer>(
   {
     guildId: { type: String, required: true, index: true },
     discordId: { type: String, required: true },
+    discordUsername: { type: String, default: '' },
     robloxId: { type: Number, required: true },
     robloxUsername: { type: String, required: true },
     robloxHeadshotUrl: { type: String, default: '' },
