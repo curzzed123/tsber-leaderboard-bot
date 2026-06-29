@@ -12,20 +12,17 @@ const LEADERBOARDS = [
 ];
 
 const GUILD_ID = '1508900900381524089';
+const LOG_CHANNEL_ID = '1521245230505005118';
 
 const messageIdCache = new Map<string, string>();
 
-// Field name: rank + username (bold, plain text)
 function fieldName(player: any): string {
   return `**#${player.rank}**  ${player.robloxUsername}`;
 }
-
 function vacantFieldName(rank: number): string {
   return `**#${rank}**  Vacant`;
 }
 
-// Field value: << | .username. | >> is the blue clickable Roblox link
-// Discord mention (<@id>) is on its own line below
 function fieldValue(player: any): string {
   const statusText = getStatusText(player.status as PlayerStatus);
   const profileLink = `https://www.roblox.com/users/${player.robloxId}/profile`;
@@ -62,16 +59,10 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
         value: player ? fieldValue(player) : vacantFieldValue(),
         inline: false,
       });
-
-    // Set thumbnail to THIS player's headshot (not just the first one)
-    if (player?.robloxHeadshotUrl) {
-      embed.setThumbnail(player.robloxHeadshotUrl);
-    }
-
+    if (player?.robloxHeadshotUrl) embed.setThumbnail(player.robloxHeadshotUrl);
     embeds.push(embed);
   }
 
-  // Background headshot refresh (non-blocking)
   for (const p of players) {
     if (p.robloxHeadshotUrl && isHeadshotExpired(p.robloxHeadshotExpiresAt)) {
       fetchRobloxHeadshot(p.robloxId).then(async ({ url, expiresAt }) => {
@@ -83,6 +74,10 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
   return embeds;
 }
 
+/**
+ * Find message — cache first, then search channel.
+ * If old message has dead content, delete it so we can send fresh.
+ */
 async function findMessage(channel: TextChannel, channelId: string): Promise<Message | null> {
   const cachedId = messageIdCache.get(channelId);
   if (cachedId) {
@@ -100,55 +95,72 @@ async function findMessage(channel: TextChannel, channelId: string): Promise<Mes
 export async function initLeaderboardMessages(client: Client): Promise<void> {
   for (const lb of LEADERBOARDS) {
     try {
-      logger.info(`Init ${lb.minRank}-${lb.maxRank}: start`);
       const channel = await client.channels.fetch(lb.channelId) as TextChannel;
-      if (!channel) { logger.error(`Init ${lb.minRank}-${lb.maxRank}: channel not found`); continue; }
-      logger.info(`Init ${lb.minRank}-${lb.maxRank}: channel OK`);
+      if (!channel) continue;
 
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
-      logger.info(`Init ${lb.minRank}-${lb.maxRank}: embeds built (${embeds.length})`);
 
-      const msg = await findMessage(channel, lb.channelId);
-      logger.info(`Init ${lb.minRank}-${lb.maxRank}: message ${msg ? 'found' : 'not found'}`);
-
-      if (msg) {
-        logger.info(`Init ${lb.minRank}-${lb.maxRank}: message author=${msg.author.id} bot=${client.user!.id} own=${msg.author.id === client.user!.id}`);
-        logger.info(`Init ${lb.minRank}-${lb.maxRank}: editing...`);
-        await msg.edit({ embeds: [embeds[0]] }).catch(e => logger.error(`EDIT ERROR: ${e.message}`));
-        messageIdCache.set(lb.channelId, msg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited OK`);
-      } else {
-        const newMsg = await channel.send({ embeds });
-        messageIdCache.set(lb.channelId, newMsg.id);
-        logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: created OK`);
+      // Find old message, DELETE it, send fresh (avoids dead GIF hang)
+      const oldMsg = await findMessage(channel, lb.channelId);
+      if (oldMsg) {
+        try { await oldMsg.delete(); } catch {}
       }
+
+      const newMsg = await channel.send({ embeds });
+      messageIdCache.set(lb.channelId, newMsg.id);
+      logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: sent fresh message ${newMsg.id}`);
     } catch (error) {
-      logger.error(`Failed init ${lb.minRank}-${lb.maxRank}:`, error);
+      logger.error(`Failed to init leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
     }
   }
 }
 
 export async function refreshLeaderboard(_guildId?: string): Promise<void> {
   const client = (globalThis as any).client as Client | undefined;
-  if (!client) {
-    logger.error('REFRESH FAILED: Client not available');
-    return;
-  }
+  if (!client) { logger.error('REFRESH FAILED: Client not available'); return; }
 
   for (const lb of LEADERBOARDS) {
     try {
       const channel = await client.channels.fetch(lb.channelId) as TextChannel;
       if (!channel) continue;
-      const msg = await findMessage(channel, lb.channelId);
-      if (!msg) {
-        logger.error(`REFRESH FAILED: No message found for ${lb.minRank}-${lb.maxRank}`);
-        continue;
-      }
+
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
-      await msg.edit({ embeds });
-      logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK`);
+      const msg = await findMessage(channel, lb.channelId);
+
+      if (msg) {
+        await msg.edit({ embeds });
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK`);
+      } else {
+        const newMsg = await channel.send({ embeds });
+        messageIdCache.set(lb.channelId, newMsg.id);
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} created new message`);
+      }
     } catch (error) {
       logger.error(`REFRESH FAILED: Leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
     }
+  }
+}
+
+/**
+ * Log an event to the designated log channel.
+ * Used for: profile created, spot taken, rank changed, etc.
+ */
+export async function logEvent(title: string, description: string): Promise<void> {
+  const client = (globalThis as any).client as Client | undefined;
+  if (!client) return;
+
+  try {
+    const channel = await client.channels.fetch(LOG_CHANNEL_ID) as TextChannel;
+    if (!channel) return;
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setColor(0x5865F2)
+      .setDescription(description)
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+  } catch (error) {
+    logger.error('Failed to log event:', error);
   }
 }

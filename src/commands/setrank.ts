@@ -6,7 +6,7 @@ import { PlayerStatus, Region } from '../types/index.js';
 import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
-import { refreshLeaderboard } from '../services/leaderboard.js';
+import { refreshLeaderboard, logEvent } from '../services/leaderboard.js';
 
 export const setrank: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -148,5 +148,15 @@ export const setrank: SlashCommand = {
     } catch (error) {
       logger.error('Leaderboard refresh FAILED:', error);
     }
+
+    // Log to the log channel
+    const logParts: string[] = [`**${player.robloxUsername}** — ${oldRank ? `#${oldRank}` : 'Unranked'} → **#${player.rank}**`];
+    if (region) logParts.push(`Region: ${region}`);
+    if (wins !== null) logParts.push(`Wins: ${wins}`);
+    if (losses !== null) logParts.push(`Losses: ${losses}`);
+    if (stage) logParts.push(`Stage: ${stage}`);
+    if (status) logParts.push(`Status: ${status}`);
+    logParts.push(`By: <@${cmd.user.id}>`);
+    await logEvent('Spot Updated', logParts.join('\n'));
   },
 };
