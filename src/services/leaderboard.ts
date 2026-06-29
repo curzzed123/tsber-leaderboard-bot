@@ -112,8 +112,9 @@ export async function initLeaderboardMessages(client: Client): Promise<void> {
       logger.info(`Init ${lb.minRank}-${lb.maxRank}: message ${msg ? 'found' : 'not found'}`);
 
       if (msg) {
+        logger.info(`Init ${lb.minRank}-${lb.maxRank}: message author=${msg.author.id} bot=${client.user!.id} own=${msg.author.id === client.user!.id}`);
         logger.info(`Init ${lb.minRank}-${lb.maxRank}: editing...`);
-        await msg.edit({ embeds: [embeds[0]] });
+        await msg.edit({ embeds: [embeds[0]] }).catch(e => logger.error(`EDIT ERROR: ${e.message}`));
         messageIdCache.set(lb.channelId, msg.id);
         logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: edited OK`);
       } else {
