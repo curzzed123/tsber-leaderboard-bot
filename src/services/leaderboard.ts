@@ -75,10 +75,6 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
   return embeds;
 }
 
-/**
- * Find message — cache first, then search channel.
- * If old message has dead content, delete it so we can send fresh.
- */
 async function findMessage(channel: TextChannel, channelId: string): Promise<Message | null> {
   const cachedId = messageIdCache.get(channelId);
   if (cachedId) {
@@ -101,7 +97,7 @@ export async function initLeaderboardMessages(client: Client): Promise<void> {
 
       const embeds = await buildEmbeds(lb.minRank, lb.maxRank);
 
-      // Find old message, DELETE it, send fresh (avoids dead GIF hang)
+      // Delete old message, send fresh
       const oldMsg = await findMessage(channel, lb.channelId);
       if (oldMsg) {
         try { await oldMsg.delete(); } catch {}
@@ -109,7 +105,7 @@ export async function initLeaderboardMessages(client: Client): Promise<void> {
 
       const newMsg = await channel.send({ embeds });
       messageIdCache.set(lb.channelId, newMsg.id);
-      logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: sent fresh message ${newMsg.id}`);
+      logger.info(`Leaderboard ${lb.minRank}-${lb.maxRank}: sent fresh message (${embeds.length} embeds)`);
     } catch (error) {
       logger.error(`Failed to init leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
     }
@@ -130,11 +126,11 @@ export async function refreshLeaderboard(_guildId?: string): Promise<void> {
 
       if (msg) {
         await msg.edit({ embeds });
-        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK`);
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} edited OK (${embeds.length} embeds)`);
       } else {
         const newMsg = await channel.send({ embeds });
         messageIdCache.set(lb.channelId, newMsg.id);
-        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} created new message`);
+        logger.info(`REFRESH: Leaderboard ${lb.minRank}-${lb.maxRank} created new message (${embeds.length} embeds)`);
       }
     } catch (error) {
       logger.error(`REFRESH FAILED: Leaderboard ${lb.minRank}-${lb.maxRank}:`, error);
@@ -142,24 +138,17 @@ export async function refreshLeaderboard(_guildId?: string): Promise<void> {
   }
 }
 
-/**
- * Log an event to the designated log channel.
- * Used for: profile created, spot taken, rank changed, etc.
- */
 export async function logEvent(title: string, description: string): Promise<void> {
   const client = (globalThis as any).client as Client | undefined;
   if (!client) return;
-
   try {
     const channel = await client.channels.fetch(LOG_CHANNEL_ID) as TextChannel;
     if (!channel) return;
-
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setColor(0x5865F2)
       .setDescription(description)
       .setTimestamp();
-
     await channel.send({ embeds: [embed] });
   } catch (error) {
     logger.error('Failed to log event:', error);
