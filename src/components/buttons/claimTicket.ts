@@ -18,11 +18,11 @@ export async function handleClaimTicketButton(interaction: ButtonInteraction): P
 
   const fightTimeInput = new TextInputBuilder()
     .setCustomId(ModalInputCustomId.CLAIM_FIGHT_TIME)
-    .setLabel('Fight Time (YYYY-MM-DD HH:MM, 24h UTC)')
-    .setPlaceholder('e.g. 2026-06-29 18:30')
+    .setLabel('Fight Time (YYYY-MM-DD HH:MM)')
+    .setPlaceholder('e.g. 2026-06-29 6:30')
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
-    .setMaxLength(20);
+    .setMaxLength(25);
 
   const fightTypeInput = new TextInputBuilder()
     .setCustomId(ModalInputCustomId.CLAIM_FIGHT_TYPE)
@@ -32,10 +32,19 @@ export async function handleClaimTicketButton(interaction: ButtonInteraction): P
     .setRequired(true)
     .setMaxLength(10);
 
+  const ampmInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.CLAIM_AM_PM)
+    .setLabel('AM or PM (UTC)')
+    .setPlaceholder('AM or PM')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(2);
+
   const row1 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTimeInput);
   const row2 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTypeInput);
+  const row3 = new ActionRowBuilder<TextInputBuilder>().addComponents(ampmInput);
 
-  modal.addComponents(row1, row2);
+  modal.addComponents(row1, row2, row3);
 
   await interaction.showModal(modal);
 }

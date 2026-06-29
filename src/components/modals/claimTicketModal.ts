@@ -14,16 +14,43 @@ const REFEREES_ROLE_ID = '1520869356903600369';
 export async function handleClaimTicketModal(interaction: ModalSubmitInteraction): Promise<void> {
   const fightTimeStr = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_FIGHT_TIME).trim();
   const fightType = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_FIGHT_TYPE).trim().toLowerCase();
+  const ampm = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_AM_PM).trim().toUpperCase();
 
   if (fightType !== 'auto' && fightType !== 'normal') {
     await interaction.reply({ embeds: [createErrorEmbed('Invalid Type', 'Fight type must be "auto" or "normal".')], ephemeral: true });
     return;
   }
 
-  // Parse the date
-  const fightTime = new Date(fightTimeStr + ':00Z');
+  if (ampm !== 'AM' && ampm !== 'PM') {
+    await interaction.reply({ embeds: [createErrorEmbed('Invalid AM/PM', 'Must be "AM" or "PM".')], ephemeral: true });
+    return;
+  }
+
+  // Parse the date with AM/PM — format: YYYY-MM-DD H:MM AM/PM
+  // Convert to 24h UTC
+  const parts = fightTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})$/);
+  if (!parts) {
+    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time Format', 'Use: YYYY-MM-DD H:MM (e.g. 2026-06-29 6:30)')], ephemeral: true });
+    return;
+  }
+
+  let hour = parseInt(parts[4], 10);
+  const minute = parseInt(parts[5], 10);
+
+  if (ampm === 'PM' && hour !== 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+
+  const fightTime = new Date(Date.UTC(
+    parseInt(parts[1], 10),
+    parseInt(parts[2], 10) - 1,
+    parseInt(parts[3], 10),
+    hour,
+    minute,
+    0,
+  ));
+
   if (isNaN(fightTime.getTime())) {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time', 'Could not parse the date. Use format: YYYY-MM-DD HH:MM')], ephemeral: true });
+    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time', 'Could not parse the date.')], ephemeral: true });
     return;
   }
 
