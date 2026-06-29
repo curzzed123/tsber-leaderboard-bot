@@ -45,12 +45,11 @@ function buildRankEmbeds(minRank: number, maxRank: number, title: string): Embed
     embeds.push(embed);
   }
 
-  // Last embed: last rank + footer (no GIF)
+  // Last embed: last rank + GIF (same as all others, no footer/timestamp)
   const lastEmbed = new EmbedBuilder()
     .setColor(0x1a1a2e)
     .addFields({ name: vacantName(maxRank), value: vacantValue(), inline: false })
-    .setTimestamp()
-    .setFooter({ text: 'Click a username to view their Roblox profile • Updated in real-time' });
+    .setImage(GIF_URL);
 
   embeds.push(lastEmbed);
 

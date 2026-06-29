@@ -109,8 +109,6 @@ async function buildLeaderboardEmbeds(
     const fieldName = player ? playerFieldName(player) : vacantFieldName(rank);
     const fieldValue = player ? playerFieldValue(player) : vacantFieldValue();
 
-    const isLast = i === ranks.length - 1 || embeds.length === 9;
-
     const embed = new EmbedBuilder().setColor(0x1a1a2e);
 
     // First embed gets the title
@@ -118,18 +116,10 @@ async function buildLeaderboardEmbeds(
       embed.setTitle(title);
     }
 
-    // Last embed gets footer + timestamp (no GIF)
-    if (isLast) {
-      embed
-        .addFields({ name: fieldName, value: fieldValue, inline: false })
-        .setTimestamp()
-        .setFooter({ text: 'Click a username to view their Roblox profile • Updated in real-time' });
-    } else {
-      // Every other embed gets the rank + GIF separator
-      embed
-        .addFields({ name: fieldName, value: fieldValue, inline: false })
-        .setImage(GIF_URL);
-    }
+    // Every embed gets the rank + GIF separator (including the last one)
+    embed
+      .addFields({ name: fieldName, value: fieldValue, inline: false })
+      .setImage(GIF_URL);
 
     embeds.push(embed);
   }
