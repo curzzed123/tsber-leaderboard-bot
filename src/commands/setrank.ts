@@ -16,9 +16,10 @@ export const setrank: SlashCommand = {
     )
     .addIntegerOption((option) =>
       option.setName('rank')
-        .setDescription('The rank position to assign (1 = best, 0 = unranked)')
+        .setDescription('Rank position 1-30, or 0 for Unranked')
         .setRequired(true)
-        .setMinValue(0),
+        .setMinValue(0)
+        .setMaxValue(30),
     ) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
