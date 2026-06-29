@@ -1,6 +1,5 @@
 import { EmbedBuilder, TextChannel, type Client, type Message } from 'discord.js';
 import { Player } from '../database/models/Player.js';
-import { getGuildConfig } from '../database/models/GuildConfig.js';
 import { PlayerStatus } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { getStatusText } from '../utils/formatting.js';
