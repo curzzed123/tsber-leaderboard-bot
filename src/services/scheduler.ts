@@ -132,7 +132,7 @@ async function sweep(): Promise<void> {
       const chRank = challenger?.rank ? `#${challenger.rank}` : 'Unranked';
       const opRank = opponent?.rank ? `#${opponent.rank}` : 'Unranked';
 
-      const { EmbedBuilder } = await import('discord.js');
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
       const fightEmbed = new EmbedBuilder()
         .setTitle('Fight Starting Now')
         .setColor(0x57F287)
@@ -151,6 +151,38 @@ async function sweep(): Promise<void> {
 
       ticket.fightOpened = true;
       await ticket.save();
+
+      // DM the referee asking for the winner
+      if (ticket.claimedBy) {
+        try {
+          const referee = await clientRef.users.fetch(ticket.claimedBy);
+          const dmChannel = await referee.createDM();
+
+          const dmEmbed = new EmbedBuilder()
+            .setTitle('Select Match Winner')
+            .setColor(0x5865F2)
+            .setDescription(
+              `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
+              `The fight time has arrived. Select the winner below.\n\n` +
+              `If the challenger (lower rank) wins, ranks swap.\n` +
+              `If the opponent (higher rank) wins, ranks stay. Winner gets +1W, loser gets +1L.`,
+            )
+            .setTimestamp();
+
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`dm_win_challenger:${ticket._id}`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`dm_win_opponent:${ticket._id}`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`dm_invalid:${ticket._id}`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
+          );
+
+          if ('send' in dmChannel) {
+            await (dmChannel as any).send({ embeds: [dmEmbed], components: [row] });
+            logger.info(`Winner DM sent to referee ${ticket.claimedBy} for ticket ${ticket._id}`);
+          }
+        } catch (dmError) {
+          logger.error(`Failed to DM referee for ticket ${ticket._id}:`, dmError);
+        }
+      }
 
       await discordLog('Fight Opened', `**Challenger:** ${chName}\n**Opponent:** ${opName}\n**Type:** ${ticket.fightType}\n**Channel:** <#${ticket.channelId}>`, 'info');
       logger.info(`Fight auto-opened for ticket ${ticket._id}`);
