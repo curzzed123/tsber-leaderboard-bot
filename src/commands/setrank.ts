@@ -124,8 +124,6 @@ export const setrank: SlashCommand = {
     await player.save();
     logger.info(`DB UPDATED: ${player.robloxUsername} rank set to #${player.rank} (was ${oldRank ?? 'Unranked'})`);
 
-    await refreshLeaderboard(guildId);
-
     // Build confirmation message showing what was set
     const fields: string[] = [`**Rank:** ${oldRank ? `#${oldRank}` : 'Unranked'} → #${player.rank}`];
     if (region) fields.push(`**Region:** ${region}`);
@@ -134,11 +132,17 @@ export const setrank: SlashCommand = {
     if (stage) fields.push(`**Stage:** ${stage}`);
     if (status) fields.push(`**Status:** ${status}`);
 
+    // Reply IMMEDIATELY — before leaderboard refresh
     await cmd.reply({
       embeds: [createSuccessEmbed(
         'Player Updated',
         `**${player.robloxUsername}**\n\n${fields.join('\n')}\n\n*Leaderboard updated.*`,
       )],
     });
+
+    // Refresh leaderboard in the background — don't block the reply
+    refreshLeaderboard(guildId).catch((e) =>
+      logger.error('Background leaderboard refresh failed:', e),
+    );
   },
 };
