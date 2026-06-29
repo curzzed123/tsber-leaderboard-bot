@@ -87,7 +87,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     robloxHeadshotExpiresAt: finalExpiresAt,
     customHeadshotUrl,
     rank: null,
-    stage: 'Stage 0',
+    stage: 'Ranked',
     region: regionInput as Region,
     wins: 0,
     losses: 0,
@@ -105,7 +105,7 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     'Profile Created',
     `Welcome to the leaderboard, **${player.robloxUsername}**!\n\n` +
     `**Region:** ${player.region}\n` +
-    `**Status:** Stage 0 (Unranked)\n\n` +
+    `**Status:** Unranked — use \`/setrank\` to assign a spot (1-30)\n\n` +
     `Ask a staff member to assign you a rank using \`/setrank\` to start challenging.`,
   );
 
