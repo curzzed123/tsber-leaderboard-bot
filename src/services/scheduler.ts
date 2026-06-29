@@ -169,11 +169,11 @@ async function sweep(): Promise<void> {
             )
             .setTimestamp();
 
-          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`dm_win_challenger:${ticket._id}`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`dm_win_opponent:${ticket._id}`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId(`dm_invalid:${ticket._id}`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
-          );
+          ) as any;
 
           if ('send' in dmChannel) {
             await (dmChannel as any).send({ embeds: [dmEmbed], components: [row] });
