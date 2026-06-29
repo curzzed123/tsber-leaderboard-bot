@@ -1,34 +1,41 @@
 import type { Client } from 'discord.js';
-import * as readyEvent from './ready.js';
-import * as interactionCreateEvent from './interactionCreate.js';
-import * as messageCreateEvent from './messageCreate.js';
 import { logger } from '../utils/logger.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventExecute = (...args: any[]) => Promise<void>;
-interface EventModule {
-  name: string;
-  once?: boolean;
-  execute: EventExecute;
-}
+import { execute as readyExecute, name as readyName, once as readyOnce } from './ready.js';
+import { execute as interactionExecute, name as interactionName } from './interactionCreate.js';
+import { execute as messageExecute, name as messageName } from './messageCreate.js';
 
 export function registerEvents(client: Client): void {
-  const ready = readyEvent as unknown as EventModule;
-  const interactionCreate = interactionCreateEvent as unknown as EventModule;
-  const messageCreate = messageCreateEvent as unknown as EventModule;
-
-  // ready event (once)
-  if (ready.once) {
-    client.once(ready.name, (...args: unknown[]) => ready.execute(...args));
+  // ready event
+  if (readyOnce) {
+    client.once(readyName, (...args) => readyExecute(...args));
   } else {
-    client.on(ready.name, (...args: unknown[]) => ready.execute(...args));
+    client.on(readyName, (...args) => readyExecute(...args));
   }
 
-  // interactionCreate
-  client.on(interactionCreate.name, (...args: unknown[]) => interactionCreate.execute(...args));
+  // interactionCreate — log every interaction for debugging
+  client.on(interactionName, async (...args) => {
+    const interaction = args[0] as any;
+    try {
+      logger.info(`Interaction received: type=${interaction.type} customId=${interaction.customId ?? 'N/A'} command=${interaction.commandName ?? 'N/A'}`);
+      await interactionExecute(interaction);
+    } catch (error) {
+      logger.error(`FATAL interaction error: type=${interaction.type} customId=${interaction.customId}:`, error);
+      try {
+        if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: 'An error occurred. Please try again.', ephemeral: true });
+        }
+      } catch {
+        // Can't reply — interaction may have expired
+      }
+    }
+  });
 
   // messageCreate
-  client.on(messageCreate.name, (...args: unknown[]) => messageCreate.execute(...args));
+  client.on(messageName, (...args) => messageExecute(...args));
+
+  // Log all debug events
+  client.on('debug', (msg) => logger.debug(`[discord.js] ${msg}`));
 
   logger.info('Event handlers registered');
 }
