@@ -1,8 +1,6 @@
 import type { Message } from 'discord.js';
 import { updateTicketActivity } from '../services/ticketFlow.js';
 
-export const name = 'messageCreate';
-
 export async function execute(message: Message): Promise<void> {
   // Ignore bot messages
   if (message.author.bot) return;

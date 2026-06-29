@@ -7,8 +7,6 @@ import { handleCreateProfileModal } from '../components/modals/createProfileModa
 import { handleChallengeOpponentSelect } from '../components/selects/challengeOpponentSelect.js';
 import { ButtonCustomId, ModalCustomId, SelectCustomId } from '../types/index.js';
 
-export const name = 'interactionCreate';
-
 export async function execute(interaction: Interaction): Promise<void> {
   try {
     if (interaction.isChatInputCommand()) {

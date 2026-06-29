@@ -7,7 +7,7 @@ export function createClient(): Client {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent, // Privileged — enable in Discord Developer Portal
+      GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMessageReactions,
     ],
     partials: [
@@ -18,10 +18,10 @@ export function createClient(): Client {
     ],
   });
 
-  client.on('warn', (message) => logger.warn(`Discord.js warning: ${message}`));
-  client.on('error', (error) => logger.error('Discord.js error:', error));
-  client.on('shardError', (error) => logger.error('Shard error:', error));
-  client.on('shardDisconnect', (event) => logger.warn(`Shard disconnected: ${event.reason}`));
+  client.on('warn', (message: string) => logger.warn(`Discord.js warning: ${message}`));
+  client.on('error', (error: Error) => logger.error('Discord.js error:', error));
+  client.on('shardError', (error: Error) => logger.error('Shard error:', error));
+  client.on('shardDisconnect', (event: { reason: string }) => logger.warn(`Shard disconnected: ${event.reason}`));
   client.on('shardReconnecting', () => logger.info('Shard reconnecting...'));
   client.on('shardResume', () => logger.info('Shard resumed'));
 
