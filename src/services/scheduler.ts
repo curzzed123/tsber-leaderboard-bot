@@ -110,7 +110,56 @@ async function sweep(): Promise<void> {
     await player.save();
   }
 
-  // 7. Refresh leaderboard for all guilds with changes
+  // 7. Auto-open scheduled fights — when fightTime has arrived
+  const fightsToOpen = await Ticket.find({
+    status: { $in: [TicketStatus.OPEN, TicketStatus.FROZEN] },
+    fightTime: { $lte: now },
+    fightOpened: false,
+    claimedBy: { $ne: null },
+  });
+
+  for (const ticket of fightsToOpen) {
+    try {
+      if (!clientRef) continue;
+      const channel = await clientRef.channels.fetch(ticket.channelId);
+      if (!channel || !channel.isTextBased()) continue;
+
+      const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
+      const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
+
+      const chName = challenger?.robloxUsername ?? 'Challenger';
+      const opName = opponent?.robloxUsername ?? 'Opponent';
+      const chRank = challenger?.rank ? `#${challenger.rank}` : 'Unranked';
+      const opRank = opponent?.rank ? `#${opponent.rank}` : 'Unranked';
+
+      const { EmbedBuilder } = await import('discord.js');
+      const fightEmbed = new EmbedBuilder()
+        .setTitle('Fight Starting Now')
+        .setColor(0x57F287)
+        .setDescription(
+          `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
+          `The scheduled fight time has arrived.\n` +
+          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
+          `**Referee:** <@${ticket.claimedBy}>`,
+        )
+        .setTimestamp();
+
+      await (channel as any).send({
+        content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${'1520869356903600369'}> The fight is starting now!`,
+        embeds: [fightEmbed],
+      });
+
+      ticket.fightOpened = true;
+      await ticket.save();
+
+      await discordLog('Fight Opened', `**Challenger:** ${chName}\n**Opponent:** ${opName}\n**Type:** ${ticket.fightType}\n**Channel:** <#${ticket.channelId}>`, 'info');
+      logger.info(`Fight auto-opened for ticket ${ticket._id}`);
+    } catch (error) {
+      logger.error(`Failed to auto-open fight for ticket ${ticket._id}:`, error);
+    }
+  }
+
+  // 8. Refresh leaderboard for all guilds with changes
   if (
     dodgeTickets.length > 0 ||
     inactiveTickets.length > 0 ||

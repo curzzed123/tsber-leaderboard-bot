@@ -67,6 +67,7 @@ export const ModalCustomId = {
   CREATE_PROFILE: 'modal_create_profile',
   CHALLENGE: 'modal_challenge',
   APPLY_LEADERBOARD: 'modal_apply_leaderboard',
+  CLAIM_TICKET: 'modal_claim_ticket',
 } as const;
 
 // ─── Select Custom IDs ───
@@ -83,4 +84,6 @@ export const ModalInputCustomId = {
   APPLY_ROBLOX_USERNAME: 'input_apply_roblox_username',
   APPLY_REGION: 'input_apply_region',
   APPLY_EXPERIENCE: 'input_apply_experience',
+  CLAIM_FIGHT_TIME: 'input_claim_fight_time',
+  CLAIM_FIGHT_TYPE: 'input_claim_fight_type',
 } as const;

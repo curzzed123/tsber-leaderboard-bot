@@ -19,6 +19,11 @@ export interface ITicket extends Document {
   closedAt: Date | null;
   closedBy: string | null;
   reason: string;
+  fightTime: Date | null;
+  fightType: string | null;
+  fightAnnounced: boolean;
+  fightOpened: boolean;
+  claimedBy: string | null;
   updatedAt: Date;
 }
 
@@ -34,7 +39,7 @@ const ticketSchema = new Schema<ITicket>(
       default: TicketStatus.OPEN,
     },
     dodgeDeadline: { type: Date, required: true },
-    inactivityDeadline: { type: Date, required: true },
+    inactivityDeadline: { type: Date, required: true, default: () => new Date() },
     lastActivityAt: { type: Date, required: true, default: () => new Date() },
     opponentResponded: { type: Boolean, default: false },
     frozen: { type: Boolean, default: false },
@@ -44,15 +49,18 @@ const ticketSchema = new Schema<ITicket>(
     closedAt: { type: Date, default: null },
     closedBy: { type: String, default: null },
     reason: { type: String, default: '' },
+    fightTime: { type: Date, default: null },
+    fightType: { type: String, default: null },
+    fightAnnounced: { type: Boolean, default: false },
+    fightOpened: { type: Boolean, default: false },
+    claimedBy: { type: String, default: null },
   },
   { timestamps: true },
 );
 
-// Index for scheduler sweeps: find open tickets by status
 ticketSchema.index({ guildId: 1, status: 1 });
-// Index for dodge deadline checks
 ticketSchema.index({ dodgeDeadline: 1 });
-// Index for inactivity deadline checks
 ticketSchema.index({ inactivityDeadline: 1 });
+ticketSchema.index({ fightTime: 1 });
 
 export const Ticket = model<ITicket>('Ticket', ticketSchema);

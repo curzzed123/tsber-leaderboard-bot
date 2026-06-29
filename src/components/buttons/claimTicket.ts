@@ -1,37 +1,41 @@
 import type { ButtonInteraction } from 'discord.js';
-import { Ticket } from '../../database/models/Ticket.js';
-import { TicketStatus } from '../../types/index.js';
-import { createSuccessEmbed, createErrorEmbed } from '../../utils/embeds.js';
-import { discordLog } from '../../utils/discordLogger.js';
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
+import { ModalCustomId, ModalInputCustomId } from '../../types/index.js';
+import { createErrorEmbed } from '../../utils/embeds.js';
+import { hasRefereePermission } from '../../utils/permissions.js';
 
 const REFEREES_ROLE_ID = '1520869356903600369';
 
 export async function handleClaimTicketButton(interaction: ButtonInteraction): Promise<void> {
-  // Only referees can claim
-  const member = interaction.member;
-  if (!member || !('roles' in member)) {
-    await interaction.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only referees can claim tickets.')], ephemeral: true });
+  if (!hasRefereePermission(interaction.member as any)) {
+    await interaction.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only referees or staff can claim tickets.')], ephemeral: true });
     return;
   }
 
-  if (!(member.roles as any).cache.has(REFEREES_ROLE_ID) && !(member as any).permissions?.has('Administrator')) {
-    await interaction.reply({ embeds: [createErrorEmbed('Permission Denied', 'Only referees can claim tickets.')], ephemeral: true });
-    return;
-  }
+  const modal = new ModalBuilder()
+    .setCustomId(ModalCustomId.CLAIM_TICKET)
+    .setTitle('Claim Ticket — Set Fight Details');
 
-  const ticket = await Ticket.findOne({
-    channelId: interaction.channelId,
-    status: { $in: [TicketStatus.OPEN, TicketStatus.FROZEN] },
-  });
+  const fightTimeInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.CLAIM_FIGHT_TIME)
+    .setLabel('Fight Time (YYYY-MM-DD HH:MM, 24h UTC)')
+    .setPlaceholder('e.g. 2026-06-29 18:30')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(20);
 
-  if (!ticket) {
-    await interaction.reply({ embeds: [createErrorEmbed('Not a Ticket', 'This button can only be used in an active ticket channel.')], ephemeral: true });
-    return;
-  }
+  const fightTypeInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.CLAIM_FIGHT_TYPE)
+    .setLabel('Fight Type (auto or normal)')
+    .setPlaceholder('auto or normal')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(10);
 
-  await interaction.reply({
-    embeds: [createSuccessEmbed('Ticket Claimed', `This ticket has been claimed by <@${interaction.user.id}>.\n\nThe referee is now present and monitoring this match.`)],
-  });
+  const row1 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTimeInput);
+  const row2 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTypeInput);
 
-  await discordLog('Ticket Claimed', `**Referee:** <@${interaction.user.id}>\n**Channel:** <#${interaction.channelId}>`, 'info');
+  modal.addComponents(row1, row2);
+
+  await interaction.showModal(modal);
 }
