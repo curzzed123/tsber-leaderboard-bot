@@ -15,6 +15,12 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   const fightTimeStr = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_FIGHT_TIME).trim();
   const fightType = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_FIGHT_TYPE).trim().toLowerCase();
   const ampm = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_AM_PM).trim().toUpperCase();
+  let country = '';
+  try {
+    country = interaction.fields.getTextInputValue(ModalInputCustomId.CLAIM_COUNTRY)?.trim() || '';
+  } catch {
+    country = '';
+  }
 
   if (fightType !== 'auto' && fightType !== 'normal') {
     await interaction.reply({ embeds: [createErrorEmbed('Invalid Type', 'Fight type must be "auto" or "normal".')], ephemeral: true });
@@ -103,6 +109,7 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
         `**${challenger.robloxUsername}** (${formatRank(challenger.rank)}) vs **${opponent.robloxUsername}** (${formatRank(opponent.rank)})\n\n` +
         `**Time:** ${discordTimestampFull(fightTime)}\n` +
         `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
+        (country ? `**Region:** ${country}\n` : '') +
         `**Referee:** <@${interaction.user.id}>\n` +
         `**Ticket:** <#${ticket.channelId}>`,
       )
@@ -123,13 +130,14 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
       'Ticket Claimed',
       `**Referee:** <@${interaction.user.id}>\n` +
       `**Fight Time:** ${discordTimestampFull(fightTime)}\n` +
-      `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n\n` +
-      `Announcement sent to <#${ANNOUNCE_CHANNEL_ID}>.\n` +
+      `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
+      (country ? `**Region:** ${country}\n` : '') +
+      `\nAnnouncement sent to <#${ANNOUNCE_CHANNEL_ID}>.\n` +
       `The fight will open automatically at the scheduled time.`,
     )],
   });
 
-  await discordLog('Ticket Claimed', `**Referee:** <@${interaction.user.id}>\n**Challenger:** ${challenger.robloxUsername}\n**Opponent:** ${opponent.robloxUsername}\n**Fight Time:** ${discordTimestampFull(fightTime)}\n**Type:** ${fightType}`, 'info');
+  await discordLog('Ticket Claimed', `**Referee:** <@${interaction.user.id}>\n**Challenger:** ${challenger.robloxUsername}\n**Opponent:** ${opponent.robloxUsername}\n**Fight Time:** ${discordTimestampFull(fightTime)}\n**Type:** ${fightType}${country ? `\n**Region:** ${country}` : ''}`, 'info');
 
   logger.info(`Ticket ${ticket._id} claimed by ${interaction.user.id} — fight at ${fightTime} (${fightType})`);
 }

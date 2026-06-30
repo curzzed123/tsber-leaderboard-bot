@@ -90,4 +90,5 @@ export const ModalInputCustomId = {
   CLAIM_FIGHT_TIME: 'input_claim_fight_time',
   CLAIM_FIGHT_TYPE: 'input_claim_fight_type',
   CLAIM_AM_PM: 'input_claim_ampm',
+  CLAIM_COUNTRY: 'input_claim_country',
 } as const;

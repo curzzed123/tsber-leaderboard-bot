@@ -40,11 +40,20 @@ export async function handleClaimTicketButton(interaction: ButtonInteraction): P
     .setRequired(true)
     .setMaxLength(2);
 
+  const countryInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.CLAIM_COUNTRY)
+    .setLabel('Exact Country (e.g. Germany, France, Japan)')
+    .setPlaceholder('Germany')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMaxLength(50);
+
   const row1 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTimeInput);
   const row2 = new ActionRowBuilder<TextInputBuilder>().addComponents(fightTypeInput);
   const row3 = new ActionRowBuilder<TextInputBuilder>().addComponents(ampmInput);
+  const row4 = new ActionRowBuilder<TextInputBuilder>().addComponents(countryInput);
 
-  modal.addComponents(row1, row2, row3);
+  modal.addComponents(row1, row2, row3, row4);
 
   await interaction.showModal(modal);
 }
