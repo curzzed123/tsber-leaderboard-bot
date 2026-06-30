@@ -55,8 +55,8 @@ function fieldValue(player: any): string {
     `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
     `Region: **${player.region ?? '-'}**\n` +
     `Stage: **${player.stage || '-'}**\n` +
-    `-# ${statusText}\n` +
-    `wins: ${player.wins} losses: ${player.losses}`
+    `-# Status: ${statusText}\n` +
+    `-# wins: ${player.wins} losses: ${player.losses}`
   );
 }
 
