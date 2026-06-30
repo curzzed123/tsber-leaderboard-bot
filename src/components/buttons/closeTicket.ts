@@ -273,24 +273,19 @@ export async function handleDMScoreModal(interaction: ModalSubmitInteraction): P
 
     await interaction.editReply({ embeds: [resultEmbed] });
 
-    // Send to scores channel
+    // Send to scores channel as plain text
     const SCORES_CHANNEL_ID = '1521317801091010601';
     const scoresChannel = await interaction.client.channels.fetch(SCORES_CHANNEL_ID).catch(() => null);
     if (scoresChannel && scoresChannel.isTextBased()) {
-      const scoreEmbed = new EmbedBuilder()
-        .setTitle('Match Result')
-        .setColor(0x5865F2)
-        .setDescription(
-          `**${winnerName}** def. **${loserName}**\n` +
-          `**Score:** ${score}\n\n` +
-          `**Winner:** ${winnerName} (${winnerRank}) — ${winner?.wins}W / ${winner?.losses}L\n` +
-          `**Loser:** ${loserName} (${loserRank}) — ${loser?.wins}W / ${loser?.losses}L\n\n` +
-          `**Referee:** <@${interaction.user.id}>\n` +
-          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}`
-        )
-        .setTimestamp();
+      const scoreText =
+        `**${winnerName}** def. **${loserName}**\n` +
+        `**Score:** ${score}\n\n` +
+        `**Winner:** ${winnerName} (${winnerRank}) — ${winner?.wins}W / ${winner?.losses}L\n` +
+        `**Loser:** ${loserName} (${loserRank}) — ${loser?.wins}W / ${loser?.losses}L\n\n` +
+        `**Referee:** <@${interaction.user.id}>\n` +
+        `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}`;
 
-      await (scoresChannel as any).send({ embeds: [scoreEmbed] });
+      await (scoresChannel as any).send({ content: scoreText });
     }
 
     // Close the fight channel

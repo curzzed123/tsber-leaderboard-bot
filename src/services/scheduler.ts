@@ -129,32 +129,27 @@ async function sweep(): Promise<void> {
       const chName = challenger?.robloxUsername ?? 'Challenger';
       const opName = opponent?.robloxUsername ?? 'Opponent';
 
-      const { EmbedBuilder } = await import('discord.js');
-      const reminderEmbed = new EmbedBuilder()
-        .setTitle('Fight Reminder — 2 Hours Left')
-        .setColor(0xFEE75C)
-        .setDescription(
-          `Your fight is in **2 hours**.\n\n` +
-          `**Match:** ${chName} vs ${opName}\n` +
-          `**Fight Time:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:F>\n` +
-          `**Time until fight:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:R>\n` +
-          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n\n` +
-          `Be ready and available at the scheduled time.`,
-        )
-        .setTimestamp();
+      const reminderText =
+        `**Fight Reminder — 2 Hours Left**\n\n` +
+        `Your fight is in **2 hours**.\n\n` +
+        `**Match:** ${chName} vs ${opName}\n` +
+        `**Fight Time:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:F>\n` +
+        `**Time until fight:** <t:${Math.floor(new Date(ticket.fightTime!).getTime() / 1000)}:R>\n` +
+        `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n\n` +
+        `Be ready and available at the scheduled time.`;
 
       // DM challenger
       try {
         const chUser = await clientRef.users.fetch(ticket.challengerDiscordId);
         const chDM = await chUser.createDM();
-        if ('send' in chDM) await (chDM as any).send({ embeds: [reminderEmbed] });
+        if ('send' in chDM) await (chDM as any).send({ content: reminderText });
       } catch {}
 
       // DM opponent
       try {
         const opUser = await clientRef.users.fetch(ticket.opponentDiscordId);
         const opDM = await opUser.createDM();
-        if ('send' in opDM) await (opDM as any).send({ embeds: [reminderEmbed] });
+        if ('send' in opDM) await (opDM as any).send({ content: reminderText });
       } catch {}
 
       ticket.reminderSent = true;
@@ -228,16 +223,12 @@ async function sweep(): Promise<void> {
         if (!channel || !channel.isTextBased()) continue;
       }
 
-      const fightEmbed = new EmbedBuilder()
-        .setTitle('Fight Starting Now')
-        .setColor(0x57F287)
-        .setDescription(
-          `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
-          `The scheduled fight time has arrived.\n` +
-          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
-          `**Referee:** <@${ticket.claimedBy}>`,
-        )
-        .setTimestamp();
+      const fightText =
+        `**Fight Starting Now**\n` +
+        `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
+        `The scheduled fight time has arrived.\n` +
+        `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
+        `**Referee:** <@${ticket.claimedBy}>`;
 
       // Add Close button so referee can close after fight
       const closeButton = new ActionRowBuilder().addComponents(
@@ -245,8 +236,7 @@ async function sweep(): Promise<void> {
       ) as any;
 
       await (channel as any).send({
-        content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${'1520869356903600369'}> The fight is starting now!`,
-        embeds: [fightEmbed],
+        content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${'1520869356903600369'}> The fight is starting now!\n\n${fightText}`,
         components: [closeButton],
       });
 

@@ -99,25 +99,20 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
     return;
   }
 
-  // Send announcement to the announce channel
+  // Send announcement to the announce channel as plain text
   const announceChannel = await interaction.client.channels.fetch(ANNOUNCE_CHANNEL_ID).catch(() => null);
   if (announceChannel && announceChannel.isTextBased()) {
-    const announceEmbed = new EmbedBuilder()
-      .setTitle(fightType === 'auto' ? 'Auto Match' : 'Scheduled Match')
-      .setColor(fightType === 'auto' ? 0x57F287 : 0x5865F2)
-      .setDescription(
-        `**${challenger.robloxUsername}** (${formatRank(challenger.rank)}) vs **${opponent.robloxUsername}** (${formatRank(opponent.rank)})\n\n` +
-        `**Time:** ${discordTimestampFull(fightTime)}\n` +
-        `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
-        (country ? `**Region:** ${country}\n` : '') +
-        `**Referee:** <@${interaction.user.id}>\n` +
-        `**Ticket:** <#${ticket.channelId}>`,
-      )
-      .setTimestamp();
+    const announceText =
+      `**${fightType === 'auto' ? 'Auto Match' : 'Scheduled Match'}**\n` +
+      `**${challenger.robloxUsername}** (${formatRank(challenger.rank)}) vs **${opponent.robloxUsername}** (${formatRank(opponent.rank)})\n\n` +
+      `**Time:** ${discordTimestampFull(fightTime)}\n` +
+      `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
+      (country ? `**Region:** ${country}\n` : '') +
+      `**Referee:** <@${interaction.user.id}>\n` +
+      `**Ticket:** <#${ticket.channelId}>`;
 
     await (announceChannel as any).send({
-      content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${REFEREES_ROLE_ID}>`,
-      embeds: [announceEmbed],
+      content: `<@${ticket.challengerDiscordId}> <@${ticket.opponentDiscordId}> <@&${REFEREES_ROLE_ID}>\n${announceText}`,
     });
 
     ticket.fightAnnounced = true;
