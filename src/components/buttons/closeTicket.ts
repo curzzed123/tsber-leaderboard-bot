@@ -1,7 +1,7 @@
-import type { ButtonInteraction } from 'discord.js';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import type { ButtonInteraction, ModalSubmitInteraction } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { Ticket } from '../../database/models/Ticket.js';
-import { TicketStatus, ButtonCustomId, type MatchOutcome } from '../../types/index.js';
+import { TicketStatus, ButtonCustomId, ModalCustomId, ModalInputCustomId, type MatchOutcome } from '../../types/index.js';
 import { createErrorEmbed } from '../../utils/embeds.js';
 import { resolveMatch } from '../../services/rankShift.js';
 import { hasRefereePermission } from '../../utils/permissions.js';
@@ -153,6 +153,7 @@ async function sendWinnerDM(interaction: ButtonInteraction, ticket: any): Promis
 
 /**
  * Handle the winner selection buttons from the DM.
+ * Opens a modal asking for the score, then resolves the match.
  */
 export async function handleDMWinnerButton(interaction: ButtonInteraction): Promise<void> {
   const [action, ticketId] = interaction.customId.split(':');
@@ -182,6 +183,65 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
     outcome = 'INVALID';
   }
 
+  // If invalid, skip score modal
+  if (outcome === 'INVALID') {
+    await interaction.deferReply();
+    try {
+      await resolveMatch(ticket, outcome, interaction.user.id);
+      await interaction.editReply({ content: 'Match closed as Invalid.' });
+      await closeFightChannel(interaction.client, ticket, outcome, interaction.user.id, interaction.user.tag, '', '');
+    } catch (error) {
+      logger.error('Failed to resolve invalid match via DM:', error);
+      await interaction.editReply({ content: 'Error resolving match.' });
+    }
+    return;
+  }
+
+  // Show score modal
+  const modal = new ModalBuilder()
+    .setCustomId(`${ModalCustomId.DM_SCORE}:${ticketId}:${outcome}`)
+    .setTitle('Enter Match Score');
+
+  const scoreInput = new TextInputBuilder()
+    .setCustomId(ModalInputCustomId.DM_SCORE)
+    .setLabel('Score (e.g. 3-0, 3-1, 3-2)')
+    .setPlaceholder('3-0')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(10);
+
+  const row = new ActionRowBuilder<TextInputBuilder>().addComponents(scoreInput);
+  modal.addComponents(row);
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Handle the score modal submission from the DM.
+ * Resolves the match and sends the score to the scores channel.
+ */
+export async function handleDMScoreModal(interaction: ModalSubmitInteraction): Promise<void> {
+  const [_, ticketId, outcomeStr] = interaction.customId.split(':');
+
+  if (!ticketId || !outcomeStr) {
+    await interaction.reply({ content: 'Invalid reference.', ephemeral: true });
+    return;
+  }
+
+  const score = interaction.fields.getTextInputValue(ModalInputCustomId.DM_SCORE).trim();
+  const outcome = outcomeStr as MatchOutcome;
+
+  const ticket = await Ticket.findById(ticketId);
+  if (!ticket) {
+    await interaction.reply({ content: 'Ticket not found.', ephemeral: true });
+    return;
+  }
+
+  if (ticket.status !== TicketStatus.OPEN && ticket.status !== TicketStatus.FROZEN) {
+    await interaction.reply({ content: 'This ticket is already closed.', ephemeral: true });
+    return;
+  }
+
   await interaction.deferReply();
 
   try {
@@ -191,51 +251,84 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
     const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
     const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
 
+    const winner = outcome === 'WIN_CHALLENGER' ? challenger : opponent;
+    const loser = outcome === 'WIN_CHALLENGER' ? opponent : challenger;
+    const winnerName = winner?.robloxUsername ?? 'Unknown';
+    const loserName = loser?.robloxUsername ?? 'Unknown';
+    const winnerRank = winner?.rank ? `#${winner.rank}` : 'Unranked';
+    const loserRank = loser?.rank ? `#${loser.rank}` : 'Unranked';
+
+    // Confirm in DM
     const resultEmbed = new EmbedBuilder()
       .setTitle('Match Result Confirmed')
-      .setColor(outcome === 'INVALID' ? 0xED4245 : 0x57F287)
+      .setColor(0x57F287)
       .setDescription(
-        outcome === 'INVALID' ? 'Match closed as Invalid.' :
-        outcome === 'WIN_CHALLENGER'
-          ? `**Winner (Challenger):** ${challenger?.robloxUsername} — now ${challenger?.rank ? `#${challenger.rank}` : 'Unranked'} (${challenger?.wins}W / ${challenger?.losses}L)\n**Loser (Opponent):** ${opponent?.robloxUsername} — now ${opponent?.rank ? `#${opponent.rank}` : 'Unranked'} (${opponent?.wins}W / ${opponent?.losses}L)`
-          : `**Winner (Opponent):** ${opponent?.robloxUsername} — ${opponent?.rank ? `#${opponent.rank}` : 'Unranked'} (${opponent?.wins}W / ${opponent?.losses}L)\n**Loser (Challenger):** ${challenger?.robloxUsername} — ${challenger?.rank ? `#${challenger.rank}` : 'Unranked'} (${challenger?.wins}W / ${challenger?.losses}L)`
+        `**Winner:** ${winnerName} (${winnerRank})\n` +
+        `**Loser:** ${loserName} (${loserRank})\n` +
+        `**Score:** ${score}\n\n` +
+        `Winner: ${winner?.wins}W / ${winner?.losses}L\n` +
+        `Loser: ${loser?.wins}W / ${loser?.losses}L`
       )
       .setTimestamp();
 
     await interaction.editReply({ embeds: [resultEmbed] });
 
-    // Close the fight channel (if it exists)
-    const channelId = ticket.fightChannelId || ticket.channelId;
-    const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
-    if (channel && channel.isTextBased()) {
-      await (channel as any).send({
-        embeds: [new EmbedBuilder()
-          .setTitle('Ticket Closed')
-          .setColor(0x57F287)
-          .setDescription(
-            outcome === 'INVALID' ? 'Match closed as Invalid.' :
-            outcome === 'WIN_CHALLENGER'
-              ? `Winner: **${challenger?.robloxUsername}**\nLoser: **${opponent?.robloxUsername}**`
-              : `Winner: **${opponent?.robloxUsername}**\nLoser: **${challenger?.robloxUsername}**`
-          )
-          .setFooter({ text: `Closed by ${interaction.user.tag}` })
-          .setTimestamp()],
-      });
+    // Send to scores channel
+    const SCORES_CHANNEL_ID = '1521317801091010601';
+    const scoresChannel = await interaction.client.channels.fetch(SCORES_CHANNEL_ID).catch(() => null);
+    if (scoresChannel && scoresChannel.isTextBased()) {
+      const scoreEmbed = new EmbedBuilder()
+        .setTitle('Match Result')
+        .setColor(0x5865F2)
+        .setDescription(
+          `**${winnerName}** def. **${loserName}**\n` +
+          `**Score:** ${score}\n\n` +
+          `**Winner:** ${winnerName} (${winnerRank}) — ${winner?.wins}W / ${winner?.losses}L\n` +
+          `**Loser:** ${loserName} (${loserRank}) — ${loser?.wins}W / ${loser?.losses}L\n\n` +
+          `**Referee:** <@${interaction.user.id}>\n` +
+          `**Type:** ${ticket.fightType === 'auto' ? 'Auto' : 'Normal'}`
+        )
+        .setTimestamp();
 
-      setTimeout(async () => {
-        try { await (channel as any).delete(); } catch {}
-      }, 5000);
+      await (scoresChannel as any).send({ embeds: [scoreEmbed] });
     }
 
-    const winnerName = outcome === 'WIN_CHALLENGER' ? challenger?.robloxUsername : opponent?.robloxUsername;
-    const loserName = outcome === 'WIN_CHALLENGER' ? opponent?.robloxUsername : challenger?.robloxUsername;
+    // Close the fight channel
+    await closeFightChannel(interaction.client, ticket, outcome, interaction.user.id, interaction.user.tag, winnerName, loserName);
+
+    // Log
     await discordLog('Match Resolved',
-      `**Winner:** ${winnerName}\n**Loser:** ${loserName}\n**Outcome:** ${outcome}\n**Referee:** <@${interaction.user.id}>`,
+      `**Winner:** ${winnerName}\n**Loser:** ${loserName}\n**Score:** ${score}\n**Referee:** <@${interaction.user.id}>`,
       'success');
 
-    logger.info(`Ticket ${ticket._id} resolved via DM as ${outcome} by ${interaction.user.id}`);
+    logger.info(`Ticket ${ticket._id} resolved via DM as ${outcome} by ${interaction.user.id} — score: ${score}`);
   } catch (error) {
-    logger.error('Failed to resolve match via DM:', error);
+    logger.error('Failed to resolve match via DM score modal:', error);
     await interaction.editReply({ content: 'Error resolving match. Use /close-ticket instead.' });
+  }
+}
+
+/**
+ * Close the fight channel with result announcement.
+ */
+async function closeFightChannel(client: any, ticket: any, outcome: MatchOutcome, closedById: string, closedByTag: string, winnerName: string, loserName: string): Promise<void> {
+  const channelId = ticket.fightChannelId || ticket.channelId;
+  const channel = await client.channels.fetch(channelId).catch(() => null);
+  if (channel && channel.isTextBased()) {
+    await (channel as any).send({
+      embeds: [new EmbedBuilder()
+        .setTitle('Ticket Closed')
+        .setColor(0x57F287)
+        .setDescription(
+          outcome === 'INVALID' ? 'Match closed as Invalid.' :
+          `Winner: **${winnerName}**\nLoser: **${loserName}**`
+        )
+        .setFooter({ text: `Closed by ${closedByTag}` })
+        .setTimestamp()],
+    });
+
+    setTimeout(async () => {
+      try { await (channel as any).delete(); } catch {}
+    }, 5000);
   }
 }

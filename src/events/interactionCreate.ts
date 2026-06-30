@@ -5,7 +5,7 @@ import { handleCreateProfileButton } from '../components/buttons/createProfile.j
 import { handleChallengeButton } from '../components/buttons/challenge.js';
 import { handleApplyLeaderboardButton } from '../components/buttons/applyLeaderboard.js';
 import { handleClaimTicketButton } from '../components/buttons/claimTicket.js';
-import { handleCloseTicketButton, handleDMWinnerButton } from '../components/buttons/closeTicket.js';
+import { handleCloseTicketButton, handleDMWinnerButton, handleDMScoreModal } from '../components/buttons/closeTicket.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
 import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleClaimTicketModal } from '../components/modals/claimTicketModal.js';
@@ -87,6 +87,12 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
 }
 
 async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
+  // Check for DM score modal (customId format: "modal_dm_score:TICKET_ID:OUTCOME")
+  if (interaction.customId.startsWith(ModalCustomId.DM_SCORE)) {
+    await handleDMScoreModal(interaction);
+    return;
+  }
+
   switch (interaction.customId) {
     case ModalCustomId.CREATE_PROFILE:
       await handleCreateProfileModal(interaction);
