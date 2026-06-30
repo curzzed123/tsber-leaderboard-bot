@@ -53,10 +53,10 @@ function fieldValue(player: any): string {
     `ID: ${player.robloxId}\n` +
     `| <@${player.discordId}> |\n` +
     `<< | .[${player.robloxUsername}](${profileLink}). | >>\n` +
-    `Region: ${player.region ?? '-'}\n` +
-    `Stage: ${player.stage || '-'}\n` +
-    `Status: ${statusText}\n` +
-    `wins: ${player.wins} losses: ${player.losses}`
+    `Region: **${player.region ?? '-'}**\n` +
+    `Stage: **${player.stage || '-'}**\n` +
+    `Status: -# ${statusText}\n` +
+    `-# wins: ${player.wins} losses: ${player.losses}`
   );
 }
 
