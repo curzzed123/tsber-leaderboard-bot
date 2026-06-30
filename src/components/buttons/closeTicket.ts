@@ -156,7 +156,10 @@ async function sendWinnerDM(interaction: ButtonInteraction, ticket: any): Promis
  * Opens a modal asking for the score, then resolves the match.
  */
 export async function handleDMWinnerButton(interaction: ButtonInteraction): Promise<void> {
-  const [action, ticketId] = interaction.customId.split(':');
+  const parts = interaction.customId.split(':');
+  const action = parts[0];
+  const ticketId = parts[1];
+  const fightType = parts[2] || 'normal'; // 'auto' or 'normal'
 
   if (!ticketId) {
     await interaction.reply({ content: 'Invalid ticket reference.', ephemeral: true });
@@ -183,7 +186,7 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
     outcome = 'INVALID';
   }
 
-  // If invalid, skip score modal
+  // If invalid, skip everything
   if (outcome === 'INVALID') {
     await interaction.deferReply();
     try {
@@ -197,7 +200,46 @@ export async function handleDMWinnerButton(interaction: ButtonInteraction): Prom
     return;
   }
 
-  // Show score modal
+  // Auto fight — no score needed, resolve immediately and announce "Auto Win"
+  if (fightType === 'auto') {
+    await interaction.deferReply();
+    try {
+      await resolveMatch(ticket, outcome, interaction.user.id);
+
+      const { Player } = await import('../../database/models/Player.js');
+      const challenger = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.challengerDiscordId });
+      const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
+      const winner = outcome === 'WIN_CHALLENGER' ? challenger : opponent;
+      const loser = outcome === 'WIN_CHALLENGER' ? opponent : challenger;
+      const winnerName = winner?.robloxUsername ?? 'Unknown';
+      const loserName = loser?.robloxUsername ?? 'Unknown';
+      const winnerRank = winner?.rank ? `#${winner.rank}` : 'Unranked';
+
+      // Confirm in DM
+      await interaction.editReply({ content: `**Auto Win**\n**Winner:** ${winnerName} (${winnerRank})\n**Loser:** ${loserName}` });
+
+      // Announce in scores channel as plain text
+      const SCORES_CHANNEL_ID = '1521317801091010601';
+      const scoresChannel = await interaction.client.channels.fetch(SCORES_CHANNEL_ID).catch(() => null);
+      if (scoresChannel && scoresChannel.isTextBased()) {
+        await (scoresChannel as any).send({
+          content: `**${winnerName}** def. **${loserName}**\n**Score:** Auto Win\n\n**Winner:** ${winnerName} (${winnerRank}) — ${winner?.wins}W / ${winner?.losses}L\n**Loser:** ${loserName}\n\n**Referee:** <@${interaction.user.id}>\n**Type:** Auto`,
+        });
+      }
+
+      // Close fight channel
+      await closeFightChannel(interaction.client, ticket, outcome, interaction.user.id, interaction.user.tag, winnerName, loserName);
+
+      await discordLog('Auto Match Resolved', `**Winner:** ${winnerName}\n**Loser:** ${loserName}\n**Referee:** <@${interaction.user.id}>`, 'success');
+      logger.info(`Auto ticket ${ticket._id} resolved as ${outcome} by ${interaction.user.id}`);
+    } catch (error) {
+      logger.error('Failed to resolve auto match:', error);
+      await interaction.editReply({ content: 'Error resolving match.' });
+    }
+    return;
+  }
+
+  // Normal fight — show score modal
   const modal = new ModalBuilder()
     .setCustomId(`${ModalCustomId.DM_SCORE}:${ticketId}:${outcome}`)
     .setTitle('Enter Match Score');

@@ -243,32 +243,49 @@ async function sweep(): Promise<void> {
       ticket.fightOpened = true;
       await ticket.save();
 
-      // DM the referee asking for the winner
+      // DM the referee asking for the winner — plain text
       if (ticket.claimedBy) {
         try {
           const referee = await clientRef.users.fetch(ticket.claimedBy);
           const dmChannel = await referee.createDM();
 
-          const dmEmbed = new EmbedBuilder()
-            .setTitle('Select Match Winner')
-            .setColor(0x5865F2)
-            .setDescription(
+          if (ticket.fightType === 'auto') {
+            // Auto fight — simpler DM, no score needed
+            const dmText =
+              `**Select Auto Match Winner**\n\n` +
               `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
-              `The fight time has arrived. Select the winner below.\n\n` +
+              `The fight time has arrived. Select the winner below.\n` +
+              `Winner gets the spot +1 win. Score will be announced as Auto Win.`;
+
+            const row = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId(`dm_win_challenger:${ticket._id}:auto`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
+              new ButtonBuilder().setCustomId(`dm_win_opponent:${ticket._id}:auto`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId(`dm_invalid:${ticket._id}:auto`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
+            ) as any;
+
+            if ('send' in dmChannel) {
+              await (dmChannel as any).send({ content: dmText, components: [row] });
+              logger.info(`Auto winner DM sent to referee ${ticket.claimedBy} for ticket ${ticket._id}`);
+            }
+          } else {
+            // Normal fight — needs score
+            const dmText =
+              `**Select Match Winner**\n\n` +
+              `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n\n` +
+              `The fight time has arrived. Select the winner below.\n` +
               `If the challenger (lower rank) wins, ranks swap.\n` +
-              `If the opponent (higher rank) wins, ranks stay. Winner gets +1W, loser gets +1L.`,
-            )
-            .setTimestamp();
+              `If the opponent (higher rank) wins, ranks stay. Winner gets +1W, loser gets +1L.`;
 
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`dm_win_challenger:${ticket._id}`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId(`dm_win_opponent:${ticket._id}`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId(`dm_invalid:${ticket._id}`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
-          ) as any;
+            const row = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId(`dm_win_challenger:${ticket._id}:normal`).setLabel(`${chName} Wins`).setStyle(ButtonStyle.Success),
+              new ButtonBuilder().setCustomId(`dm_win_opponent:${ticket._id}:normal`).setLabel(`${opName} Wins`).setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId(`dm_invalid:${ticket._id}:normal`).setLabel('Invalid').setStyle(ButtonStyle.Danger),
+            ) as any;
 
-          if ('send' in dmChannel) {
-            await (dmChannel as any).send({ embeds: [dmEmbed], components: [row] });
-            logger.info(`Winner DM sent to referee ${ticket.claimedBy} for ticket ${ticket._id}`);
+            if ('send' in dmChannel) {
+              await (dmChannel as any).send({ content: dmText, components: [row] });
+              logger.info(`Winner DM sent to referee ${ticket.claimedBy} for ticket ${ticket._id}`);
+            }
           }
         } catch (dmError) {
           logger.error(`Failed to DM referee for ticket ${ticket._id}:`, dmError);
