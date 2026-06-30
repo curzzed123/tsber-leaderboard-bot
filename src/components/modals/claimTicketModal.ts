@@ -23,12 +23,12 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   }
 
   if (fightType !== 'auto' && fightType !== 'normal') {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid Type', 'Fight type must be "auto" or "normal".')], ephemeral: true });
+    await interaction.reply({ content: 'Fight type must be "auto" or "normal".', ephemeral: true });
     return;
   }
 
   if (ampm !== 'AM' && ampm !== 'PM') {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid AM/PM', 'Must be "AM" or "PM".')], ephemeral: true });
+    await interaction.reply({ content: 'Must be "AM" or "PM".', ephemeral: true });
     return;
   }
 
@@ -36,7 +36,7 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   // Convert to 24h UTC
   const parts = fightTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})$/);
   if (!parts) {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time Format', 'Use: YYYY-MM-DD H:MM (e.g. 2026-06-29 6:30)')], ephemeral: true });
+    await interaction.reply({ content: 'Use format: YYYY-MM-DD H:MM (e.g. 2026-06-29 6:30)', ephemeral: true });
     return;
   }
 
@@ -56,12 +56,12 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   ));
 
   if (isNaN(fightTime.getTime())) {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time', 'Could not parse the date.')], ephemeral: true });
+    await interaction.reply({ content: 'Could not parse the date.', ephemeral: true });
     return;
   }
 
   if (fightTime <= new Date()) {
-    await interaction.reply({ embeds: [createErrorEmbed('Invalid Time', 'Fight time must be in the future.')], ephemeral: true });
+    await interaction.reply({ content: 'Fight time must be in the future.', ephemeral: true });
     return;
   }
 
@@ -71,12 +71,12 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   });
 
   if (!ticket) {
-    await interaction.reply({ embeds: [createErrorEmbed('Not a Ticket', 'This can only be used in an active ticket channel.')], ephemeral: true });
+    await interaction.reply({ content: 'This can only be used in an active ticket channel.', ephemeral: true });
     return;
   }
 
   if (ticket.claimedBy) {
-    await interaction.reply({ embeds: [createErrorEmbed('Already Claimed', `This ticket has already been claimed by <@${ticket.claimedBy}>.`)], ephemeral: true });
+    await interaction.reply({ content: `This ticket has already been claimed by <@${ticket.claimedBy}>.`, ephemeral: true });
     return;
   }
 
@@ -95,7 +95,7 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   const opponent = await Player.findOne({ guildId: ticket.guildId, discordId: ticket.opponentDiscordId });
 
   if (!challenger || !opponent) {
-    await interaction.editReply({ embeds: [createErrorEmbed('Error', 'Could not find player data.')] });
+    await interaction.editReply({ content: 'Could not find player data.' });
     return;
   }
 
@@ -121,15 +121,14 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
 
   // Reply in the ticket channel
   await interaction.editReply({
-    embeds: [createSuccessEmbed(
-      'Ticket Claimed',
+    content:
+      `**Ticket Claimed**\n` +
       `**Referee:** <@${interaction.user.id}>\n` +
       `**Fight Time:** ${discordTimestampFull(fightTime)}\n` +
       `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
       (country ? `**Region:** ${country}\n` : '') +
       `\nAnnouncement sent to <#${ANNOUNCE_CHANNEL_ID}>.\n` +
       `The fight will open automatically at the scheduled time.`,
-    )],
   });
 
   await discordLog('Ticket Claimed', `**Referee:** <@${interaction.user.id}>\n**Challenger:** ${challenger.robloxUsername}\n**Opponent:** ${opponent.robloxUsername}\n**Fight Time:** ${discordTimestampFull(fightTime)}\n**Type:** ${fightType}${country ? `\n**Region:** ${country}` : ''}`, 'info');

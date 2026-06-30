@@ -258,20 +258,16 @@ export async function handleDMScoreModal(interaction: ModalSubmitInteraction): P
     const winnerRank = winner?.rank ? `#${winner.rank}` : 'Unranked';
     const loserRank = loser?.rank ? `#${loser.rank}` : 'Unranked';
 
-    // Confirm in DM
-    const resultEmbed = new EmbedBuilder()
-      .setTitle('Match Result Confirmed')
-      .setColor(0x57F287)
-      .setDescription(
-        `**Winner:** ${winnerName} (${winnerRank})\n` +
-        `**Loser:** ${loserName} (${loserRank})\n` +
-        `**Score:** ${score}\n\n` +
-        `Winner: ${winner?.wins}W / ${winner?.losses}L\n` +
-        `Loser: ${loser?.wins}W / ${loser?.losses}L`
-      )
-      .setTimestamp();
+    // Confirm in DM as plain text
+    const resultText =
+      `**Match Result Confirmed**\n` +
+      `**Winner:** ${winnerName} (${winnerRank})\n` +
+      `**Loser:** ${loserName} (${loserRank})\n` +
+      `**Score:** ${score}\n\n` +
+      `Winner: ${winner?.wins}W / ${winner?.losses}L\n` +
+      `Loser: ${loser?.wins}W / ${loser?.losses}L`;
 
-    await interaction.editReply({ embeds: [resultEmbed] });
+    await interaction.editReply({ content: resultText });
 
     // Send to scores channel as plain text
     const SCORES_CHANNEL_ID = '1521317801091010601';
