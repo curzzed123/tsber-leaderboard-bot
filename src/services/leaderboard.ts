@@ -29,12 +29,12 @@ async function fieldName(player: any, client: Client): Promise<string> {
     const member = await guild.members.fetch(player.discordId);
     displayName = member.displayName;
   } catch {}
-  return `**#${player.rank}**  ${displayName}`;
-}
+      return `### **#${player.rank}**  ${displayName}`;
+  }
 
-function vacantFieldName(rank: number): string {
-  return `**#${rank}**  Vacant`;
-}
+  function vacantFieldName(rank: number): string {
+    return `### **#${rank}**  Vacant`;
+  }
 
 /**
  * Field value — exact format:
