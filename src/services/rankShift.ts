@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 import type { IPlayer } from '../database/models/Player.js';
 import type { ITicket } from '../database/models/Ticket.js';
 import { refreshLeaderboard } from './leaderboard.js';
+import { updatePlayerRoles } from './roles.js';
 
 /**
  * Check if a player is in the Top 10 (rank 1-10).
@@ -212,6 +213,13 @@ export async function resolveMatch(
 
     // Refresh the leaderboard to reflect new ranks
     await refreshLeaderboard(ticket.guildId);
+
+    // Update Discord roles for both players based on new ranks
+    const client = (globalThis as any).client;
+    if (client) {
+      await updatePlayerRoles(client, challengerDiscordId, (await Player.findOne({ guildId, discordId: challengerDiscordId }))?.rank ?? null);
+      await updatePlayerRoles(client, opponentDiscordId, (await Player.findOne({ guildId, discordId: opponentDiscordId }))?.rank ?? null);
+    }
 
     logger.info(`Ticket ${ticket._id} resolved as ${outcome} by ${closedBy}`);
   });

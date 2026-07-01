@@ -7,6 +7,7 @@ import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
+import { updatePlayerRoles } from '../services/roles.js';
 import { discordLog } from '../utils/discordLogger.js';
 
 export const setrank: SlashCommand = {
@@ -124,6 +125,9 @@ export const setrank: SlashCommand = {
 
     await player.save();
     logger.info(`DB UPDATED: ${player.robloxUsername} rank set to #${player.rank} (was ${oldRank ?? 'Unranked'})`);
+
+    // Update Discord role based on new rank
+    await updatePlayerRoles(cmd.client, player.discordId, player.rank);
 
     // Build confirmation message showing what was set
     const fields: string[] = [`**Rank:** ${oldRank ? `#${oldRank}` : 'Unranked'} → #${player.rank}`];

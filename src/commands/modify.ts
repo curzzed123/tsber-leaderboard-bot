@@ -7,6 +7,7 @@ import { createSuccessEmbed, createErrorEmbed } from '../utils/embeds.js';
 import { hasStaffPermission } from '../utils/permissions.js';
 import { logger } from '../utils/logger.js';
 import { refreshLeaderboard } from '../services/leaderboard.js';
+import { updatePlayerRoles } from '../services/roles.js';
 import { discordLog } from '../utils/discordLogger.js';
 
 export const modify: SlashCommand = {
@@ -117,6 +118,11 @@ export const modify: SlashCommand = {
     }
 
     await player.save();
+
+    // Update Discord role if rank changed
+    if (rank !== null || wins !== null || losses !== null) {
+      await updatePlayerRoles(cmd.client, player.discordId, player.rank);
+    }
     logger.info(`Player modified: ${player.robloxUsername} by ${cmd.user.id} — ${changes.join(', ')}`);
 
     // Reply immediately

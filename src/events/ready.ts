@@ -4,6 +4,7 @@ import { config } from '../config/index.js';
 import { commands } from '../commands/index.js';
 import { initLeaderboardMessages } from '../services/leaderboard.js';
 import { setupTicketPanel } from '../services/ticketPanel.js';
+import { updateAllRoles } from '../services/roles.js';
 import { REST, Routes } from 'discord.js';
 
 export async function execute(client: Client): Promise<void> {
@@ -51,6 +52,13 @@ export async function execute(client: Client): Promise<void> {
     await setupTicketPanel(client, config.guildId);
   } catch (error) {
     logger.error('Failed to init ticket panel:', error);
+  }
+
+  // Sync roles for all players on startup
+  try {
+    await updateAllRoles(client);
+  } catch (error) {
+    logger.error('Failed to sync roles:', error);
   }
 
   logger.info('Bot is ready.');
