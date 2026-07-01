@@ -89,11 +89,7 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
     const embed = new EmbedBuilder()
       .setColor(player ? 0x000000 : 0x2b2d31)
       .setTitle(name)
-      .addFields({
-        name: '\u200B',
-        value: player ? fieldValue(player) : vacantFieldValue(),
-        inline: false,
-      })
+      .setDescription(player ? fieldValue(player) : vacantFieldValue())
       .setImage(GIF_URL);
 
     if (player?.robloxHeadshotUrl) embed.setThumbnail(player.robloxHeadshotUrl);
