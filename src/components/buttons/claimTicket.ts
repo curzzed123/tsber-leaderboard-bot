@@ -34,7 +34,7 @@ export async function handleClaimTicketButton(interaction: ButtonInteraction): P
 
   const ampmInput = new TextInputBuilder()
     .setCustomId(ModalInputCustomId.CLAIM_AM_PM)
-    .setLabel('AM or PM (UTC)')
+    .setLabel('AM or PM (GMT+1)')
     .setPlaceholder('AM or PM')
     .setStyle(TextInputStyle.Short)
     .setRequired(true)

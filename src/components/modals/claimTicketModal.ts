@@ -46,14 +46,24 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   if (ampm === 'PM' && hour !== 12) hour += 12;
   if (ampm === 'AM' && hour === 12) hour = 0;
 
-  const fightTime = new Date(Date.UTC(
+  // GMT+1: subtract 1 hour to convert to UTC for storage
+  const utcHour = hour - 1;
+  const utcDate = new Date(Date.UTC(
     parseInt(parts[1], 10),
     parseInt(parts[2], 10) - 1,
     parseInt(parts[3], 10),
-    hour,
+    utcHour,
     minute,
     0,
   ));
+
+  // Handle day rollover if hour goes negative
+  if (utcHour < 0) {
+    utcDate.setUTCDate(utcDate.getUTCDate() - 1);
+    utcDate.setUTCHours(24 + utcHour);
+  }
+
+  const fightTime = utcDate;
 
   if (isNaN(fightTime.getTime())) {
     await interaction.reply({ content: 'Could not parse the date.', ephemeral: true });
