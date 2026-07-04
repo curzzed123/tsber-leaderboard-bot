@@ -22,18 +22,23 @@ export async function handleApplyLeaderboardModal(interaction: ModalSubmitIntera
   // Validate region
   const validRegions = Object.values(Region);
   if (!validRegions.includes(regionInput as Region)) {
-    await interaction.reply({
-      embeds: [createErrorEmbed('Invalid Region', `Region must be one of: ${validRegions.join(', ')}`)],
-      ephemeral: true,
-    });
+    await interaction.reply({ content: `Invalid region. Must be one of: ${validRegions.join(', ')}`, ephemeral: true });
     return;
   }
 
   await interaction.deferReply({ ephemeral: true });
 
+  // Block if already registered
+  const { Player } = await import('../../database/models/Player.js');
+  const existing = await Player.findOne({ guildId: interaction.guildId, discordId: interaction.user.id });
+  if (existing) {
+    await interaction.editReply({ content: `You are already on the leaderboard as **${existing.robloxUsername}**. You cannot apply again.` });
+    return;
+  }
+
   const guild = interaction.client.guilds.cache.get(GUILD_ID);
   if (!guild) {
-    await interaction.editReply({ embeds: [createErrorEmbed('Error', 'Guild not found.')] });
+    await interaction.editReply({ content: 'Guild not found.' });
     return;
   }
 
@@ -82,16 +87,13 @@ export async function handleApplyLeaderboardModal(interaction: ModalSubmitIntera
     });
 
     await interaction.editReply({
-      embeds: [createSuccessEmbed(
-        'Application Submitted',
-        `Your leaderboard application has been submitted!\n\n**Ticket channel:** <#${channel.id}>\n\nStaff will review your application and assign you a rank if accepted.`,
-      )],
+      content: `Your leaderboard application has been submitted!\n\n**Ticket channel:** <#${channel.id}>\n\nStaff will review your application and assign you a rank if accepted.`,
     });
 
     await discordLog('Leaderboard Application', `**Applicant:** ${robloxUsername} — <@${interaction.user.id}>\n**Region:** ${regionInput}\n**Channel:** <#${channel.id}>`, 'info');
     logger.info(`Leaderboard application: ${robloxUsername} by ${interaction.user.id} (channel: ${channel.id})`);
   } catch (error) {
     logger.error('Failed to create application ticket:', error);
-    await interaction.editReply({ embeds: [createErrorEmbed('Error', 'Failed to create application ticket. Please try again or contact staff.')] });
+    await interaction.editReply({ content: 'Failed to create application ticket. Please try again or contact staff.' });
   }
 }

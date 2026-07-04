@@ -27,10 +27,10 @@ async function fieldName(player: any, client: Client): Promise<string> {
   try {
     const guild = await client.guilds.fetch(GUILD_ID);
     const member = await guild.members.fetch(player.discordId);
-    displayName = member.displayName;
+    if (member) displayName = member.displayName;
   } catch {}
-      return `#${player.rank} ${displayName}`;
-  }
+  return `#${player.rank} ${displayName}`;
+}
 
   function vacantFieldName(rank: number): string {
     return `#${rank} Vacant`;

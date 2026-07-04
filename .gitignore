@@ -9,7 +9,7 @@ Thumbs.db
 .codely/
 .codely-cli/
 
-# Old scripts (not part of the bot)
+# Old scripts
 fix-*.cjs
 test-*.ts
 roblox-bridge/
@@ -21,3 +21,9 @@ quick-send.ts
 send-messages.ts
 update-messages.ts
 check-channel.ts
+
+# Chess bot (separate project)
+chess-bot/
+
+# Webhook scripts
+src/webhook/
