@@ -92,7 +92,9 @@ async function buildEmbeds(minRank: number, maxRank: number): Promise<EmbedBuild
       .setDescription(player ? fieldValue(player) : vacantFieldValue())
       .setImage(GIF_URL);
 
-    if (player?.robloxHeadshotUrl) embed.setThumbnail(player.robloxHeadshotUrl);
+    if (player?.robloxHeadshotUrl && player.robloxHeadshotUrl.startsWith('http')) {
+      try { embed.setThumbnail(player.robloxHeadshotUrl); } catch {}
+    }
     embeds.push(embed);
   }
 
