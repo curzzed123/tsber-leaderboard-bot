@@ -56,7 +56,7 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
         '# General Support\n' +
         'Open a ticket if you need help with anything.\n' +
         'A staff member will assist you.\n\n' +
-        '**Note:** Opening a ticket for no reason may result in a warning.',
+        '> **Note:** Opening a ticket for no reason may result in a warning.',
       );
 
     const supportRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
