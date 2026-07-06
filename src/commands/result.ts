@@ -154,19 +154,13 @@ async function postResult(
   pros: string,
   cons: string,
 ) {
-  // Post result in the tryout channel
+  // Post result in the tryout channel — format like the screenshot
   let resultText =
-    `**Tryout Result**\n\n` +
-    `**Player:** <@${targetUser.id}>\n` +
-    `**Stage:** ${stage}\n` +
-    `**Level:** ${level}\n` +
-    `**Mastery:** ${mastery}`;
+    `<@${targetUser.id}> tryout result is **${stage} ${mastery} ${level}**`;
 
   if (notes) resultText += `\n\n**Notes:** ${notes}`;
   if (pros) resultText += `\n**Pros:** ${pros}`;
   if (cons) resultText += `\n**Cons:** ${cons}`;
-
-  resultText += `\n\n**Host:** <@${cmd.user.id}>`;
 
   await cmd.reply({ content: resultText });
 
@@ -179,6 +173,6 @@ async function postResult(
   }
 
   // Log
-  await discordLog('Tryout Result', `**Player:** ${targetUser.username}\n**Stage:** ${stage}\n**Level:** ${level}\n**Mastery:** ${mastery}\n**Host:** <@${cmd.user.id}>`, 'info');
-  logger.info(`Tryout result: ${targetUser.username} — ${stage} by ${cmd.user.id}`);
+  await discordLog('Tryout Result', `**Player:** ${targetUser.username}\n**Result:** ${stage} ${mastery} ${level}\n**Host:** <@${cmd.user.id}>`, 'info');
+  logger.info(`Tryout result: ${targetUser.username} — ${stage} ${mastery} ${level} by ${cmd.user.id}`);
 }

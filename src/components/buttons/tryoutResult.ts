@@ -26,16 +26,11 @@ export async function handleTryoutConfirmButton(interaction: ButtonInteraction):
   if (channel && channel.isTextBased()) {
     let resultText =
       `**Tryout Result**\n\n` +
-      `**Player:** <@${pending.userId}>\n` +
-      `**Stage:** ${pending.stage}\n` +
-      `**Level:** ${pending.level}\n` +
-      `**Mastery:** ${pending.mastery}`;
+      `<@${pending.userId}> tryout result is **${pending.stage} ${pending.mastery} ${pending.level}**`;
 
     if (pending.notes) resultText += `\n\n**Notes:** ${pending.notes}`;
     if (pending.pros) resultText += `\n**Pros:** ${pending.pros}`;
     if (pending.cons) resultText += `\n**Cons:** ${pending.cons}`;
-
-    resultText += `\n\n**Host:** <@${pending.hostId}>`;
 
     await (channel as any).send({ content: resultText });
   }
