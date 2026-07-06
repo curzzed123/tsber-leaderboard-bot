@@ -9,7 +9,7 @@ import { refreshLeaderboard } from '../services/leaderboard.js';
 import { discordLog } from '../utils/discordLogger.js';
 
 // Tryout result channel
-const TRYOUT_CHANNEL_ID = '1509132280738873417';
+const TRYOUT_CHANNEL_ID = '1509295250840227860';
 
 // Stage roles
 const STAGE_ROLES: Record<string, string> = {
