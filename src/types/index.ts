@@ -63,6 +63,9 @@ export const ButtonCustomId = {
   DM_WIN_CHALLENGER: 'dm_win_challenger',
   DM_WIN_OPPONENT: 'dm_win_opponent',
   DM_INVALID: 'dm_invalid',
+  TRYOUT_CONFIRM: 'tryout_confirm',
+  TRYOUT_CANCEL: 'tryout_cancel',
+  GENERAL_SUPPORT: 'btn_general_support',
 } as const;
 
 // ─── Modal Custom IDs ───

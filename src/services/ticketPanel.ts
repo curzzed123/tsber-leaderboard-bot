@@ -32,6 +32,7 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
 
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId(ButtonCustomId.APPLY_LEADERBOARD).setLabel('Apply for Leaderboard').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(ButtonCustomId.GENERAL_SUPPORT).setLabel('General Support').setStyle(ButtonStyle.Secondary),
   );
 
   const messages = await textChannel.messages.fetch({ limit: 20 });
