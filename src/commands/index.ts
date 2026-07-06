@@ -12,6 +12,7 @@ import { freezeTimer } from './freeze-timer.js';
 import { closeTicketCmd } from './close-ticket.js';
 import { modify } from './modify.js';
 import { result } from './result.js';
+import { makehook } from './makehook.js';
 
 export const commands: SlashCommand[] = [
   forcewin,
@@ -21,4 +22,5 @@ export const commands: SlashCommand[] = [
   closeTicketCmd,
   modify,
   result,
+  makehook,
 ];
