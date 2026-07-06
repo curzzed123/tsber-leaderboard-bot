@@ -52,13 +52,13 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
 
     const supportEmbed = new EmbedBuilder()
       .setTitle('General Support')
-      .setColor(0x5865F2)
+      .setColor(0x2b2d31)
       .setDescription(
         '**Need help?**\n\n' +
         'Click the button below to open a private support ticket.\n' +
-        'A staff member will assist you shortly.',
+        'A staff member will assist you shortly.\n\n' +
+        '**Warning:** If you open a ticket for no reason, you can get warned and banned.',
       )
-      .setFooter({ text: 'Persistent buttons • Work even after bot restarts' })
       .setTimestamp();
 
     const supportRow = new ActionRowBuilder<ButtonBuilder>().addComponents(

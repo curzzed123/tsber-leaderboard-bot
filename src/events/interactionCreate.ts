@@ -7,7 +7,7 @@ import { handleApplyLeaderboardButton } from '../components/buttons/applyLeaderb
 import { handleClaimTicketButton } from '../components/buttons/claimTicket.js';
 import { handleCloseTicketButton, handleDMWinnerButton, handleDMScoreModal } from '../components/buttons/closeTicket.js';
 import { handleTryoutConfirmButton, handleTryoutCancelButton } from '../components/buttons/tryoutResult.js';
-import { handleGeneralSupportButton } from '../components/buttons/generalSupport.js';
+import { handleGeneralSupportButton, handleGeneralSupportModal } from '../components/buttons/generalSupport.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
 import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleClaimTicketModal } from '../components/modals/claimTicketModal.js';
@@ -111,6 +111,9 @@ async function handleModal(interaction: ModalSubmitInteraction): Promise<void> {
       break;
     case ModalCustomId.CLAIM_TICKET:
       await handleClaimTicketModal(interaction);
+      break;
+    case ModalCustomId.GENERAL_SUPPORT:
+      await handleGeneralSupportModal(interaction);
       break;
     default:
       logger.warn(`Unknown modal customId: ${interaction.customId}`);

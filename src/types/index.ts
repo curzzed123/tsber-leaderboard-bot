@@ -75,6 +75,7 @@ export const ModalCustomId = {
   APPLY_LEADERBOARD: 'modal_apply_leaderboard',
   CLAIM_TICKET: 'modal_claim_ticket',
   DM_SCORE: 'modal_dm_score',
+  GENERAL_SUPPORT: 'modal_general_support',
 } as const;
 
 // ─── Select Custom IDs ───
@@ -96,4 +97,6 @@ export const ModalInputCustomId = {
   CLAIM_AM_PM: 'input_claim_ampm',
   CLAIM_COUNTRY: 'input_claim_country',
   DM_SCORE: 'input_dm_score',
+  SUPPORT_REASON: 'input_support_reason',
+  SUPPORT_DETAILS: 'input_support_details',
 } as const;
