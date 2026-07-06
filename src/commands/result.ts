@@ -82,8 +82,11 @@ export const result: SlashCommand = {
       return;
     }
 
-    // Only tryout hosts (staff/admin) can use
-    if (!hasStaffPermission(cmd.member as any)) {
+    // Only tryout hosts (staff/admin/tryout host role) can use
+    const TRYOUT_HOST_ROLE_ID = '1509128687596077056';
+    const member = cmd.member as any;
+    const isTryoutHost = member?.roles?.cache?.has(TRYOUT_HOST_ROLE_ID) ?? false;
+    if (!hasStaffPermission(member) && !isTryoutHost) {
       await cmd.reply({ content: 'Only Tryout Hosts can use this command.', ephemeral: true });
       return;
     }
