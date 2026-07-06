@@ -51,15 +51,13 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
     const sChannel = supportChannel as TextChannel;
 
     const supportEmbed = new EmbedBuilder()
-      .setTitle('General Support')
       .setColor(0x2b2d31)
       .setDescription(
-        '**Need help?**\n\n' +
-        'Click the button below to open a private support ticket.\n' +
-        'A staff member will assist you shortly.\n\n' +
-        '**Warning:** If you open a ticket for no reason, you can get warned and banned.',
-      )
-      .setTimestamp();
+        '# General Support\n' +
+        'Open a ticket if you need help with anything.\n' +
+        'A staff member will assist you.\n\n' +
+        '**Note:** Opening a ticket for no reason may result in a warning.',
+      );
 
     const supportRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId(ButtonCustomId.GENERAL_SUPPORT).setLabel('Open Support Ticket').setStyle(ButtonStyle.Primary),
