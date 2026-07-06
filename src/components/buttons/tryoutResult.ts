@@ -33,6 +33,15 @@ export async function handleTryoutConfirmButton(interaction: ButtonInteraction):
     if (pending.cons) resultText += `\n**Cons:** ${pending.cons}`;
 
     await (channel as any).send({ content: resultText });
+
+    // If Stage 1, also announce in the stage 1 channel
+    if (pending.stage === 'Stage 1') {
+      const STAGE1_CHANNEL_ID = '1509302161409052855';
+      const stage1Channel = await interaction.client.channels.fetch(STAGE1_CHANNEL_ID).catch(() => null);
+      if (stage1Channel && stage1Channel.isTextBased()) {
+        await (stage1Channel as any).send({ content: resultText });
+      }
+    }
   }
 
   // Update player stage in DB
