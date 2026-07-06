@@ -109,7 +109,13 @@ export const makehook: SlashCommand = {
       const messageOptions: any = { embeds: [embed] };
       if (content) messageOptions.content = content;
 
-      await interaction.channel!.send(messageOptions);
+      const channel = interaction.channel;
+      if (channel && 'send' in channel) {
+        await (channel as any).send(messageOptions);
+      } else {
+        await interaction.reply({ content: 'Cannot send in this channel.', ephemeral: true });
+        return;
+      }
       await interaction.reply({ content: 'Embed sent.', ephemeral: true });
     } catch (error) {
       logger.error('Failed to send makehook embed:', error);
