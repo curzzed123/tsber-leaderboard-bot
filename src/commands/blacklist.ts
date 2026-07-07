@@ -92,6 +92,18 @@ export const blacklist: SlashCommand = {
       roleIds,
     });
 
+    // DM the user
+    try {
+      const dmChannel = await targetUser.createDM();
+      if ('send' in dmChannel) {
+        await (dmChannel as any).send({
+          content: `Hey, you've been blacklisted from Ryukai.\n\n**Reason:** ${reason}\n\nDM a mod to be unblacklisted.`,
+        });
+      }
+    } catch {
+      // DMs might be closed
+    }
+
     await interaction.editReply({ content: `${targetUser.username} has been blacklisted.\nAll roles removed. They can no longer talk or see channels.\n**Reason:** ${reason}` });
 
     await discordLog('User Blacklisted', `**User:** ${targetUser.username} (<@${targetUser.id}>)\n**Reason:** ${reason}\n**Staff:** <@${interaction.user.id}>\n**Roles stored:** ${roleIds.length}`, 'warn');
