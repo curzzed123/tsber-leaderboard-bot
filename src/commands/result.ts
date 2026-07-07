@@ -156,7 +156,7 @@ async function postResult(
 ) {
   // Post result in the tryout channel — format like the screenshot
   let resultText =
-    `<@${targetUser.id}> tryout result is **${stage} ${mastery} ${level}**`;
+    `<@${targetUser.id}> tryout result is **${stage} ${level} ${mastery}**`;
 
   if (notes) resultText += `\n\n**Notes:** ${notes}`;
   if (pros) resultText += `\n**Pros:** ${pros}`;
