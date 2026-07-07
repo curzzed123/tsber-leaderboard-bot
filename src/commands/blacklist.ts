@@ -37,6 +37,16 @@ export const blacklist: SlashCommand = {
       option.setName('user').setDescription('The user to blacklist').setRequired(true),
     )
     .addStringOption((option) =>
+      option
+        .setName('category')
+        .setDescription('Is this blacklist appealable?')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Appealable', value: 'Appealable' },
+          { name: 'Unappealable', value: 'Unappealable' },
+        ),
+    )
+    .addStringOption((option) =>
       option.setName('reason').setDescription('Reason for blacklist').setRequired(false),
     ) as SlashCommandBuilder,
 
@@ -47,6 +57,7 @@ export const blacklist: SlashCommand = {
     }
 
     const targetUser = interaction.options.getUser('user', true);
+    const category = interaction.options.getString('category', true);
     const reason = interaction.options.getString('reason') ?? 'No reason provided';
     const guildId = interaction.guildId!;
 
@@ -114,7 +125,7 @@ export const blacklist: SlashCommand = {
       const dmChannel = await targetUser.createDM();
       if ('send' in dmChannel) {
         await (dmChannel as any).send({
-          content: `Hey, you've been blacklisted from Ryukai.\n\n**Reason:** ${reason}\n\nDM a mod to be unblacklisted.`,
+          content: `Hey, you've been blacklisted from Ryukai.\n\n**Reason:** ${reason}\n**Category:** ${category}\n\nDM a mod to be unblacklisted.`,
         });
       }
     } catch {
@@ -128,6 +139,7 @@ export const blacklist: SlashCommand = {
       .setColor(0xED4245)
       .setDescription(
         `**User:** ${targetUser.username} (<@${targetUser.id}>)\n` +
+        `**Category:** ${category}\n` +
         `**Reason:** ${reason}\n` +
         `**Staff:** <@${interaction.user.id}>\n` +
         `**Roles removed:** ${roleIds.length}\n` +
@@ -137,7 +149,7 @@ export const blacklist: SlashCommand = {
 
     await interaction.editReply({ embeds: [blacklistEmbed] });
 
-    await discordLog('User Blacklisted', `**User:** ${targetUser.username} (<@${targetUser.id}>)\n**Reason:** ${reason}\n**Staff:** <@${interaction.user.id}>\n**Roles stored:** ${roleIds.length}`, 'warn');
+    await discordLog('User Blacklisted', `**User:** ${targetUser.username} (<@${targetUser.id}>)\n**Category:** ${category}\n**Reason:** ${reason}\n**Staff:** <@${interaction.user.id}>\n**Roles stored:** ${roleIds.length}`, 'warn');
     logger.info(`User blacklisted: ${targetUser.id} by ${interaction.user.id}`);
   },
 };
