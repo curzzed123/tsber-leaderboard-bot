@@ -70,6 +70,9 @@ export const blacklist: SlashCommand = {
     // Store all their roles
     const roleIds = member.roles.cache.map((r) => r.id).filter((id) => id !== guild.id);
 
+    // Store original nickname
+    const originalNick = member.nickname || member.user.username;
+
     // Remove all roles
     try {
       await member.roles.remove(roleIds);
@@ -77,10 +80,24 @@ export const blacklist: SlashCommand = {
       logger.error('Failed to remove roles:', error);
     }
 
-    // Add blacklist role (no permissions) — we'll create a mute-like state
-    // Instead of a role, we'll just remove all roles and also apply a server mute + server deafen
+    // Add blacklist role
+    const BLACKLIST_ROLE_ID = '1523847813262479584';
     try {
-      await member.disableCommunicationUntil('4102444800'); // Year 2100 — permanent
+      await member.roles.add(BLACKLIST_ROLE_ID);
+    } catch (error) {
+      logger.error('Failed to add blacklist role:', error);
+    }
+
+    // Change nickname to [BLACKLISTED]
+    try {
+      await member.setNickname('[BLACKLISTED]');
+    } catch (error) {
+      logger.error('Failed to change nickname:', error);
+    }
+
+    // Mute
+    try {
+      await member.disableCommunicationUntil('4102444800');
     } catch (error) {
       logger.error('Failed to mute user:', error);
     }
@@ -104,7 +121,21 @@ export const blacklist: SlashCommand = {
       // DMs might be closed
     }
 
-    await interaction.editReply({ content: `${targetUser.username} has been blacklisted.\nAll roles removed. They can no longer talk or see channels.\n**Reason:** ${reason}` });
+    // Announce as embed in the channel
+    const { EmbedBuilder } = await import('discord.js');
+    const blacklistEmbed = new EmbedBuilder()
+      .setTitle('User Blacklisted')
+      .setColor(0xED4245)
+      .setDescription(
+        `**User:** ${targetUser.username} (<@${targetUser.id}>)\n` +
+        `**Reason:** ${reason}\n` +
+        `**Staff:** <@${interaction.user.id}>\n` +
+        `**Roles removed:** ${roleIds.length}\n` +
+        `**Nickname changed to:** [BLACKLISTED]`
+      )
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [blacklistEmbed] });
 
     await discordLog('User Blacklisted', `**User:** ${targetUser.username} (<@${targetUser.id}>)\n**Reason:** ${reason}\n**Staff:** <@${interaction.user.id}>\n**Roles stored:** ${roleIds.length}`, 'warn');
     logger.info(`User blacklisted: ${targetUser.id} by ${interaction.user.id}`);
@@ -155,6 +186,17 @@ export const unblacklist: SlashCommand = {
       }
     }
 
+    // Remove blacklist role
+    const BLACKLIST_ROLE_ID = '1523847813262479584';
+    try {
+      await member.roles.remove(BLACKLIST_ROLE_ID);
+    } catch {}
+
+    // Restore nickname
+    try {
+      await member.setNickname(null);
+    } catch {}
+
     // Remove communication restriction
     try {
       await member.disableCommunicationUntil(null);
@@ -165,7 +207,20 @@ export const unblacklist: SlashCommand = {
     // Delete the blacklist record
     await Blacklist.deleteOne({ _id: record._id });
 
-    await interaction.editReply({ content: `${targetUser.username} has been unblacklisted.\nRestored ${restored} roles. They can talk and see channels again.` });
+    // Announce as embed
+    const { EmbedBuilder } = await import('discord.js');
+    const unblacklistEmbed = new EmbedBuilder()
+      .setTitle('User Unblacklisted')
+      .setColor(0x57F287)
+      .setDescription(
+        `**User:** ${targetUser.username} (<@${targetUser.id}>)\n` +
+        `**Roles restored:** ${restored}\n` +
+        `**Nickname restored**\n` +
+        `**Staff:** <@${interaction.user.id}>`
+      )
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [unblacklistEmbed] });
 
     await discordLog('User Unblacklisted', `**User:** ${targetUser.username} (<@${targetUser.id}>)\n**Roles restored:** ${restored}\n**Staff:** <@${interaction.user.id}>`, 'success');
     logger.info(`User unblacklisted: ${targetUser.id} by ${interaction.user.id} — ${restored} roles restored`);
