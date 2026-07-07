@@ -12,6 +12,7 @@ interface IBlacklist extends Document {
   guildId: string;
   discordId: string;
   roleIds: string[];
+  originalNickname: string | null;
   blacklistedAt: Date;
 }
 
@@ -19,6 +20,7 @@ const blacklistSchema = new Schema<IBlacklist>({
   guildId: { type: String, required: true },
   discordId: { type: String, required: true },
   roleIds: { type: [String], default: [] },
+  originalNickname: { type: String, default: null },
   blacklistedAt: { type: Date, default: () => new Date() },
 });
 
@@ -82,7 +84,7 @@ export const blacklist: SlashCommand = {
     const roleIds = member.roles.cache.map((r) => r.id).filter((id) => id !== guild.id);
 
     // Store original nickname
-    const originalNick = member.nickname || member.user.username;
+    const originalNickname = member.nickname;
 
     // Remove all roles
     try {
@@ -118,6 +120,7 @@ export const blacklist: SlashCommand = {
       guildId,
       discordId: targetUser.id,
       roleIds,
+      originalNickname,
     });
 
     // DM the user
@@ -204,9 +207,13 @@ export const unblacklist: SlashCommand = {
       await member.roles.remove(BLACKLIST_ROLE_ID);
     } catch {}
 
-    // Restore nickname
+    // Restore original nickname
     try {
-      await member.setNickname(null);
+      if (record.originalNickname) {
+        await member.setNickname(record.originalNickname);
+      } else {
+        await member.setNickname(null);
+      }
     } catch {}
 
     // Remove communication restriction
