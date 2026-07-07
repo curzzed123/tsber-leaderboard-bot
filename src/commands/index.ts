@@ -13,6 +13,7 @@ import { closeTicketCmd } from './close-ticket.js';
 import { modify } from './modify.js';
 import { result } from './result.js';
 import { makehook } from './makehook.js';
+import { blacklist, unblacklist } from './blacklist.js';
 
 export const commands: SlashCommand[] = [
   forcewin,
@@ -23,4 +24,6 @@ export const commands: SlashCommand[] = [
   modify,
   result,
   makehook,
+  blacklist,
+  unblacklist,
 ];
