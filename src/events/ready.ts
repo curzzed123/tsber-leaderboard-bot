@@ -15,33 +15,6 @@ export async function execute(client: Client): Promise<void> {
   // Store client globally for leaderboard refresh
   (globalThis as any).client = client;
 
-  // Set bot presence
-  const { ActivityType } = await import('discord.js');
-  client.user?.setPresence({
-    activities: [{
-      name: 'over Ryūkai | discord.gg/uwNrEWYfQU',
-      type: ActivityType.Watching,
-    }],
-    status: 'online',
-  });
-
-  // Set bot avatar
-  try {
-    const avatarUrl = 'https://cdn.discordapp.com/attachments/1517869005690638477/1523815012836311060/54c00e71c0e4c2f5034b3e1f4a46fe0e.gif';
-    const response = await fetch(avatarUrl);
-    if (response.ok) {
-      const buffer = Buffer.from(await response.arrayBuffer());
-      await client.user?.setAvatar(buffer);
-    }
-  } catch (error) {
-    // Avatar change might be rate-limited — that's fine
-  }
-
-  // Set bot username/bio with Discord invite
-  try {
-    await client.user?.setUsername('Ryūkai');
-  } catch {}
-
   // Register slash commands — PUT replaces all existing commands (clears old ones)
   try {
     const rest = new REST({ version: '10' }).setToken(config.token);
