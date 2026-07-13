@@ -67,12 +67,12 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
   try {
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
     const dmChannel = await interaction.user.createDM();
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`open_fight:${ticket._id}`)
         .setLabel('Open Fight')
         .setStyle(ButtonStyle.Success),
-    );
+    ) as any;
 
     if ('send' in dmChannel) {
       await (dmChannel as any).send({
