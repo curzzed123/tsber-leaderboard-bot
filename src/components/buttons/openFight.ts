@@ -44,9 +44,9 @@ export async function handleOpenFightButton(interaction: ButtonInteraction): Pro
     // Send the fight start message in the ticket channel
     const channel = await interaction.client.channels.fetch(ticket.channelId).catch(() => null);
     if (channel && channel.isTextBased()) {
-      const closeButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      const closeButton = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(ButtonCustomId.CLOSE_TICKET).setLabel('Close').setStyle(ButtonStyle.Danger),
-      );
+      ) as any;
 
       await (channel as any).send({
         content:
