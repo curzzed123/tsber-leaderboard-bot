@@ -60,8 +60,33 @@ export async function handleClaimTicketModal(interaction: ModalSubmitInteraction
       `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n` +
       (country ? `**Region:** ${country}\n` : '') +
       `\n${chName} (${chRank}) vs ${opName} (${opRank})\n\n` +
-      `When the fight is done, click **Close** to select the winner.`,
+      `Check your DMs for the **Open Fight** button.`,
   });
+
+  // DM the referee with the Open Fight button
+  try {
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const dmChannel = await interaction.user.createDM();
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`open_fight:${ticket._id}`)
+        .setLabel('Open Fight')
+        .setStyle(ButtonStyle.Success),
+    );
+
+    if ('send' in dmChannel) {
+      await (dmChannel as any).send({
+        content:
+          `**Open Fight**\n\n` +
+          `**${chName}** (${chRank}) vs **${opName}** (${opRank})\n` +
+          `**Type:** ${fightType === 'auto' ? 'Auto' : 'Normal'}\n\n` +
+          `Click **Open Fight** when the match is about to start.`,
+        components: [row],
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to DM referee open fight button:', error);
+  }
 
   await discordLog('Ticket Claimed', `**Referee:** <@${interaction.user.id}>\n**Challenger:** ${chName}\n**Opponent:** ${opName}\n**Type:** ${fightType}${country ? `\n**Region:** ${country}` : ''}`, 'info');
   logger.info(`Ticket ${ticket._id} claimed by ${interaction.user.id} (${fightType})`);
