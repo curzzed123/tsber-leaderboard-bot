@@ -19,7 +19,7 @@ export async function execute(client: Client): Promise<void> {
   const { ActivityType } = await import('discord.js');
   client.user?.setPresence({
     activities: [{
-      name: 'over Ryūkai',
+      name: 'over Ryūkai | discord.gg/uwNrEWYfQU',
       type: ActivityType.Watching,
     }],
     status: 'online',
