@@ -1,5 +1,4 @@
 import type { Message } from 'discord.js';
-import { PermissionFlagsBits } from 'discord.js';
 import { updateTicketActivity } from '../services/ticketFlow.js';
 import { logger } from '../utils/logger.js';
 
@@ -11,7 +10,7 @@ export async function execute(message: Message): Promise<void> {
   await updateTicketActivity(message.channelId, message.author.id);
 
   // $add @user or $add userid — add a user to this ticket channel
-  if (message.content.startsWith('$add')) {
+  if (message.content.toLowerCase().startsWith('$add')) {
     let userId: string | undefined;
 
     // Check for mentioned user first
@@ -19,10 +18,12 @@ export async function execute(message: Message): Promise<void> {
     if (mentionedUser) {
       userId = mentionedUser.id;
     } else {
-      // Try to extract user ID from the message
-      const match = message.content.match(/\$add\s+(\d{17,19})/);
-      if (match) {
-        userId = match[1];
+      // Extract the raw ID — grab everything after "$add " and strip non-digits
+      const raw = message.content.slice(4).trim();
+      // Remove any <@! > wrapping if someone pasted a mention as text
+      const cleaned = raw.replace(/[<@!>]/g, '').trim();
+      if (/^\d+$/.test(cleaned) && cleaned.length >= 17) {
+        userId = cleaned;
       }
     }
 
@@ -32,9 +33,19 @@ export async function execute(message: Message): Promise<void> {
     }
 
     try {
+      const guild = message.guild;
+      if (!guild) return;
+
+      // Fetch the member to get a valid object for permissionOverwrites
+      const member = await guild.members.fetch(userId).catch(() => null);
+      if (!member) {
+        await message.reply('User not found in this server.');
+        return;
+      }
+
       const channel = message.channel;
       if (channel && 'permissionOverwrites' in channel) {
-        await (channel as any).permissionOverwrites.edit(userId, {
+        await (channel as any).permissionOverwrites.edit(member, {
           ViewChannel: true,
           SendMessages: true,
           ReadMessageHistory: true,
