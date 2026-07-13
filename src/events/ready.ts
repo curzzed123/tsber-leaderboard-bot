@@ -5,6 +5,7 @@ import { commands } from '../commands/index.js';
 import { initLeaderboardMessages } from '../services/leaderboard.js';
 import { setupTicketPanel } from '../services/ticketPanel.js';
 import { setupPingRoles } from '../services/pingRoles.js';
+import { setupStaffList } from '../services/staffList.js';
 import { updateAllRoles } from '../services/roles.js';
 import { REST, Routes } from 'discord.js';
 
@@ -60,6 +61,13 @@ export async function execute(client: Client): Promise<void> {
     await setupPingRoles(client);
   } catch (error) {
     logger.error('Failed to init ping roles:', error);
+  }
+
+  // Initialize staff list
+  try {
+    await setupStaffList(client);
+  } catch (error) {
+    logger.error('Failed to init staff list:', error);
   }
 
   // Sync roles for all players on startup
