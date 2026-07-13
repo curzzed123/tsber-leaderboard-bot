@@ -52,12 +52,13 @@ export async function setupTicketPanel(client: Client, _guildId: string): Promis
 
     const supportEmbed = new EmbedBuilder()
       .setColor(0x2b2d31)
+      .setTitle('General Support')
       .setDescription(
-        '# General Support\n' +
-        'Open a ticket if you need help with anything.\n' +
-        'A staff member will assist you.\n\n' +
+        'Need help with something? Open a ticket and a staff member will assist you.\n\n' +
         '> **Note:** Opening a ticket for no reason may result in a warning.',
-      );
+      )
+      .setFooter({ text: 'Ryukai Support' })
+      .setTimestamp();
 
     const supportRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId(ButtonCustomId.GENERAL_SUPPORT).setLabel('Open Support Ticket').setStyle(ButtonStyle.Primary),

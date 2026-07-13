@@ -32,6 +32,15 @@ export async function handleCreateProfileModal(interaction: ModalSubmitInteracti
     return;
   }
 
+  // Check for Stage 2 role
+  const STAGE2_ROLE_ID = '1509493847632248884';
+  const member = interaction.member;
+  const hasStage2 = member && 'roles' in member && (member.roles as any).cache.has(STAGE2_ROLE_ID);
+  if (!hasStage2) {
+    await interaction.reply({ content: 'You need the **Stage 2** role to create a profile on the leaderboard. Pass a tryout first.', ephemeral: true });
+    return;
+  }
+
   await interaction.deferReply({ ephemeral: true });
 
   const robloxData = await findRobloxUser(robloxUsername);

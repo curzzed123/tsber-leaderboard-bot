@@ -71,6 +71,13 @@ export const blacklist: SlashCommand = {
       return;
     }
 
+    // Check if bot has higher role than the target
+    const botMember = await guild.members.fetch(guild.client.user!.id);
+    if (member.roles.highest.position >= botMember.roles.highest.position) {
+      await interaction.reply({ content: 'Cannot blacklist this user — my role is not high enough. Move my role above theirs.', ephemeral: true });
+      return;
+    }
+
     // Check if already blacklisted
     const existing = await Blacklist.findOne({ guildId, discordId: targetUser.id });
     if (existing) {

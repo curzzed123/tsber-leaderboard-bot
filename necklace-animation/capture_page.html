@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NecklaceRise</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #000; height: 100vh; width: 100vw; font-family: system-ui, sans-serif; }
+  .scene { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+  .gif-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 100%; min-height: 100%; object-fit: cover; z-index: 1; }
+  .necklace-wrapper { position: absolute; top: 50%; left: 50%; z-index: 3; width: 45vw; max-width: 550px; animation: rise 4.5s cubic-bezier(0.25, 0.8, 0.3, 1) both, float 5s ease-in-out 4.5s infinite both; }
+  .necklace-wrapper img { display: block; width: 100%; height: auto; pointer-events: none; }
+  .necklace-base { clip-path: polygon(28% 0, 72% 0, 72% 100%, 28% 100%); }
+  .wing-left { position: absolute; top: 0; left: 0; clip-path: polygon(0 0, 40% 0, 40% 100%, 0 100%); transform-origin: 35% 45%; animation: leftWingRise 4.5s cubic-bezier(0.25, 0.8, 0.3, 1) both, wingFlapLeft 3.2s ease-in-out 4.5s infinite both; }
+  .wing-right { position: absolute; top: 0; left: 0; clip-path: polygon(60% 0, 100% 0, 100% 100%, 60% 100%); transform-origin: 65% 45%; animation: rightWingRise 4.5s cubic-bezier(0.25, 0.8, 0.3, 1) both, wingFlapRight 3.2s ease-in-out 4.5s infinite both; }
+  .glow { position: absolute; top: 50%; left: 50%; z-index: 2; width: 40%; height: 60%; transform: translate(-50%, -50%); background: radial-gradient(ellipse at center, rgba(180, 200, 255, 0.15) 0%, transparent 70%); pointer-events: none; animation: glowPulse 3s ease-in-out 4.5s infinite both; }
+  body.paused * { animation-play-state: paused !important; }
+  @keyframes rise {
+    0% { transform: translate(-50%, -50%) translateY(280px) scale(0.6); opacity: 0; }
+    15% { opacity: 0; }
+    30% { opacity: 1; transform: translate(-50%, -50%) translateY(150px) scale(0.75); }
+    55% { transform: translate(-50%, -50%) translateY(-90px) scale(1.05); }
+    75% { transform: translate(-50%, -50%) translateY(-40px) scale(1.02); }
+    100% { transform: translate(-50%, -50%) translateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(-1.5deg) scale(1); }
+    25% { transform: translate(-50%, -50%) translateY(-18px) rotate(0deg) scale(1.015); }
+    50% { transform: translate(-50%, -50%) translateY(-8px) rotate(1.5deg) scale(1.02); }
+    75% { transform: translate(-50%, -50%) translateY(-22px) rotate(0.5deg) scale(1.01); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+  }
+  @keyframes leftWingRise {
+    0% { transform: rotate(55deg) translateY(25px); }
+    65% { transform: rotate(-4deg) translateY(-2px); }
+    100% { transform: rotate(0deg) translateY(0); }
+  }
+  @keyframes rightWingRise {
+    0% { transform: rotate(-55deg) translateY(25px); }
+    65% { transform: rotate(4deg) translateY(-2px); }
+    100% { transform: rotate(0deg) translateY(0); }
+  }
+  @keyframes wingFlapLeft {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(12deg) translateY(-3px); }
+  }
+  @keyframes wingFlapRight {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(-12deg) translateY(-3px); }
+  }
+</style>
+</head>
+<body class="paused">
+  <div class="scene">
+    <img class="gif-bg" src="assets/background.gif" alt="">
+    <div class="necklace-wrapper" id="necklace">
+      <div class="glow" id="glow"></div>
+      <img class="necklace-base" src="assets/necklace-full.png" alt="">
+      <img class="wing-left" src="assets/necklace-full.png" alt="">
+      <img class="wing-right" src="assets/necklace-full.png" alt="">
+    </div>
+  </div>
+  <script>
+    // Signal when page is loaded, then start after delay
+    window.__loaded = false;
+    window.addEventListener('load', () => {
+      window.__loaded = true;
+    });
+    // Will be called by puppeteer to start animation
+    window.__startAnim = function() {
+      document.body.classList.remove('paused');
+    };
+  </script>
+</body>
+</html>

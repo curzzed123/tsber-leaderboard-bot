@@ -8,6 +8,7 @@ import { handleClaimTicketButton } from '../components/buttons/claimTicket.js';
 import { handleCloseTicketButton, handleDMWinnerButton, handleDMScoreModal } from '../components/buttons/closeTicket.js';
 import { handleTryoutConfirmButton, handleTryoutCancelButton } from '../components/buttons/tryoutResult.js';
 import { handleGeneralSupportButton, handleGeneralSupportModal } from '../components/buttons/generalSupport.js';
+import { handlePingRoleButton } from '../services/pingRoles.js';
 import { handleCreateProfileModal } from '../components/modals/createProfileModal.js';
 import { handleApplyLeaderboardModal } from '../components/modals/applyLeaderboardModal.js';
 import { handleClaimTicketModal } from '../components/modals/claimTicketModal.js';
@@ -89,6 +90,8 @@ async function handleButton(interaction: ButtonInteraction): Promise<void> {
         await handleTryoutConfirmButton(interaction);
       } else if (interaction.customId === ButtonCustomId.TRYOUT_CANCEL) {
         await handleTryoutCancelButton(interaction);
+      } else if (interaction.customId.startsWith('pingrole:')) {
+        await handlePingRoleButton(interaction);
       } else {
         logger.warn(`Unknown button customId: ${interaction.customId}`);
       }
